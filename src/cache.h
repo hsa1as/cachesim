@@ -1,9 +1,29 @@
+/*
+     .--,       .--,
+    ( (  \.---./  ) )
+     '.__/o   o\__.'
+        {=  ^  =}
+         >  -  <
+ ____.""`-------`"".____
+/                       \
+\ CS6600: Assignment 1  /
+/ Cache Simulator       \
+\ Author: R Sai Ashwin  /
+/ Roll No: NS24Z344     \
+\_______________________/
+       ___)( )(___  jgs
+      (((__) (__)))
+*/
+
 #ifndef CACHE_SIM
 #define CACHE_SIM
+
+#include<vector>
 
 enum RESULT{
   CACHE_HIT,
   CACHE_MISS,
+  CACHE_ERR
 }
 
 class Statistics(){
@@ -41,15 +61,16 @@ class Cache{
   int           BITS_tag;
   vector<Line>  lines;
   Statistics    stat;
+  Cache *       parent;
+  Cache *       vc;
 
-  private:
-  void        replace();
-  void *      findBlock();
-  
   public:
   
   Cache(int size, int assoc, int blocksz);
   RESULT read(uint32_t addr);
-  void write(uint32_t addr);
-
+  RESULT write(uint32_t addr); 
+  RESULT evict(uint32_t addr);
+  void   createVC(int size, int assoc, int blocksz);
 }
+
+#endif
