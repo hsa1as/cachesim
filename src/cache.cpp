@@ -18,7 +18,7 @@
 #include  <cmath>
 #include <cstdlib>
 #include "cache.h"
-
+#include <iostream>
 Line::Line(int bpl, int blocksz): size(bpl), tags(bpl, 0), counters(bpl,0){}
 /*  this->size      =     bpl;
   this->tags      =     vector<int> (bpl, 0);
@@ -28,31 +28,43 @@ Line::Line(int bpl, int blocksz): size(bpl), tags(bpl, 0), counters(bpl,0){}
 } */
 
 // address: tag of block being replaced in line 
-Line::replaceBlock(uint32_t newaddress){
+int Line::replaceBlock(uint32_t newaddress){
 
   int ret = -1;
   int maxcounter = this->counters[0];
   int maxidx = 0;
   // Implement LRU
-  for(int i = 1; i < this->size; i++){
+  int i = 1;
+  for(; i < this->size; i++){
     maxcounter = (maxcounter >= this->counters[i]) ? maxcounter : this->counters[i];
     maxidx = (maxcounter >= this->counters[i]) ? maxidx : i;
   }
 
-  // i holds idx of block to be evicted.
-  ret = this-> tags[i]
-  this->tags[i]= = newaddress;
-
+  // maxidx holds idx of block to be evicted.
+  ret = this->tags[maxidx];
+  this->tags[maxidx] = newaddress;
+  this->counters[maxidx] = 0;
+  for(int j = 0; j < this->size; j++){
+    if(j == maxidx) continue;
+    this->counters[j]++;
+  }
   // Return tag of evicted block
   return ret;
 
 }
 
 // addr : tag of the requested block
-Line::getBlock(uint32_t addr){
+RESULT Line::getBlock(uint32_t addr){
 
   for(int i = 0; i < this->size; i++){
     if(this->tags[i] == addr){
+      for(int j = 0; j < this->size; j++){
+        if(i == j){
+          counters[i] = 0;
+        }else{
+          this->counters[i]++;
+        }
+      }
       return CACHE_HIT;
     }
   }
@@ -68,7 +80,7 @@ Cache::Cache(int size, int assoc, int blocksz):size(size),
     lines.push_back(Line(assoc, blocksz));
   }
 
-  this->stat = new Statistics();
+  this->stat = Statistics();
   this->BITS_boff = log2(blocksz);
   this->BITS_idx = log2(numlines);
   this->BITS_tag = 32 - BITS_boff - BITS_idx;
@@ -76,33 +88,33 @@ Cache::Cache(int size, int assoc, int blocksz):size(size),
 }
 
 // addr: addr of the read. 
-Cache::read(uint32_t addr){
+RESULT Cache::read(uint32_t addr){
   uint32_t addr_bak = addr;
   uint32_t boff = addr & (0xFFFFFFFF ^ (0xFFFFFFFF << this->BITS_boff));
   addr = addr >> this->BITS_boff;
   uint32_t idx  = addr & (0xFFFFFFFF ^ (0xFFFFFFFF << this->BITS_idx));
   addr = addr >> this->BITS_idx;
   uint32_t tag  = addr;
-  line = this->lines[idx];
+  Line line = this->lines[idx];
   RESULT result = line.getBlock(tag);
   if(result == CACHE_MISS){
     // oldblock holds tag of evicted block
     uint32_t oldblock = line.replaceBlock(addr);
     if(oldblock == -1){
-      cerr<<"Replace Block failed with return -1 in "<<__FILE__<<" at lineno "<<__LINE__<<endl;
+      std::cerr<<"Replace Block failed with return -1 in "<<__FILE__<<" at lineno "<<__LINE__<<std::endl;
     }
     if(this->vc != NULL){
-      vc.read(addr_bak);
+      vc->read(addr_bak);
       // Victim cache is fully associative and has different tag/idx/ bit numbers
       // best to keep the api simple and all of Cache's member functions take the entire
       // address as the parameter. oldblock has to be modified to inlcude all the bits now;
       uint32_t vc_evict_addr = (oldblock << (BITS_idx + BITS_boff)) + idx << BITS_boff ;
-      vc.evict(vc_evict_addr);
+      vc->evict(vc_evict_addr);
     }else{
       if(this->parent==NULL) return CACHE_MISS;
-      this->parent.read(addr);
+      this->parent->read(addr);
     }
-    return CACHE_MISS
+    return CACHE_MISS;
   }else{
     return CACHE_HIT;
   }
@@ -111,17 +123,17 @@ Cache::read(uint32_t addr){
 
 
 // Basically same logic as read. Not sure if write buffers are needed as of right now
-Cache::write(uint32_t addr){
-  cerr<<"Not implemented yet. Please talk to me later\n";
+RESULT Cache::write(uint32_t addr){
+  std::cerr<<"Not implemented yet. Please talk to me later\n";
   return CACHE_MISS;
 }
 
 // Ideally should not 
-Cache::evict(uint32_t addr){
-  cerr<<"Not implemented yet\n";
+RESULT Cache::evict(uint32_t addr){
+  std::cerr<<"Not implemented yet\n";
   return CACHE_MISS;
 }
 
-Cache::createVC(int size, int assoc, int blocksz){
+void Cache::createVC(int size, int assoc, int blocksz){
   this->vc = new Cache(size, assoc, blocksz);
 }

@@ -15,10 +15,10 @@
       (((__) (__)))
 */
 #include "cache.h"
-
+#include<iostream>
 using namespace std;
 
 int main(){
-  mycache = Cache(32*1024, 2, 8);
+  Cache mycache = Cache(32*1024, 2, 8);
   cout<<"Cache object created\n No compilation issue\n. Happy";
 }

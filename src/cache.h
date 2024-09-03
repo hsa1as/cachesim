@@ -17,30 +17,27 @@
 
 #ifndef CACHE_SIM
 #define CACHE_SIM
-
+#include<cstdint>
 #include<vector>
 
 enum RESULT{
   CACHE_HIT,
   CACHE_MISS,
   CACHE_ERR
-}
+};
 
-class Statistics(){
+class Statistics{
   int misses;
   int hits;
   int reads;
   int writes;
   int swap;
-
-  public:
-  Statistics();
-}
+};
 
 class Line{
-  vector<int>           tags;
-  vector<int>           counters;
-  int                   size;
+  std::vector<int>   tags;
+  std::vector<int>   counters;
+  int                size;
   public:
   
   Line(int bpl, int blocksz);
@@ -49,7 +46,7 @@ class Line{
   // Get address of block having address = address
   RESULT      getBlock(uint32_t address);  
 
-}
+};
 
 class Cache{
   int           size;
@@ -59,7 +56,7 @@ class Cache{
   int           BITS_boff;
   int           BITS_idx;
   int           BITS_tag;
-  vector<Line>  lines;
+  std::vector<Line>  lines;
   Statistics    stat;
   Cache *       parent;
   Cache *       vc;
@@ -71,6 +68,6 @@ class Cache{
   RESULT write(uint32_t addr); 
   RESULT evict(uint32_t addr);
   void   createVC(int size, int assoc, int blocksz);
-}
+};
 
 #endif
