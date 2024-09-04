@@ -46,9 +46,9 @@ class Line{
   // Place block in the line. Why separate function ? TODO
   uint64_t    replaceBlock(uint32_t newaddress);
   // Read a block in line
-  RESULT      readBlock(uint32_t address);  
+  RESULT      readBlock(uint32_t tag);  
   // Write to block in line
-  RESULT      writeBlock(uint32_t address);
+  RESULT      writeBlock(uint32_t tag);
 };
 
 class Cache{

@@ -29,14 +29,14 @@ Line::Line(int bpl, int blocksz): size(bpl), tags(bpl, 0), counters(bpl,0),
 // ( ret >> 34 ) & 1 represents usage of invalid block in the line
 // ( ret >> 35 ) & 1 represents evicting of a dirty block. The owner
 // of the line needs to perform a writeback to the parent
-uint64_t Line::replaceBlock(uint32_t newaddress){
+uint64_t Line::replaceBlock(uint32_t tag){
 
   uint64_t ret = 1 << 33;
 
   // Check if any blocks are free (invalid)
   for(int i = 0; i < this->size; i++){
     if(this->valid[i] == false){
-      this->tags[i] = newaddress;
+      this->tags[i] = tag;
       this->valid[i] = true;
       this->counters[i] = 0;
       for(int j = 0; j < this->size; j++){
@@ -63,37 +63,52 @@ uint64_t Line::replaceBlock(uint32_t newaddress){
   if(this->dirty[maxidx]){
     ret = ret | 1 << 35;
   }
-  this->tags[maxidx] = newaddress;
+  this->tags[maxidx] = tag;
   this->counters[maxidx] = 0;
-  this->dirty[maxidx] = 0;
+  this->dirty[maxidx] = false;
   for(int j = 0; j < this->size; j++){
     if(j == maxidx) continue;
     this->counters[j]++;
   }
 
   // Return tag of evicted block
-
   return ret;
-
 }
 
 // addr : tag of the requested block
-RESULT Line::readBlock(uint32_t addr){
+RESULT Line::readBlock(uint32_t tag){
 
   for(int i = 0; i < this->size; i++){
-    if(this->tags[i] == addr){
+    if(this->tags[i] == tag){
       for(int j = 0; j < this->size; j++){
         if(i == j){
           counters[i] = 0;
         }else{
-          this->counters[i]++;
+          this->counters[j]++;
         }
       }
       return CACHE_HIT;
     }
   }
   return CACHE_MISS;
+}
 
+// tag: tag of block to be written to
+RESULT Line::writeBlock(uint32_t tag){
+  for(int i = 0; i < this-> size; i++){
+    if(this->tags[i] == addr){
+      for(int j = 0; j<this->size; j++){
+        if(i==j){
+          this->counters[i] = 0;
+        }else{
+          this->counters[j]++;
+        }
+      }
+      this->dirty[i] - true;
+      return CACHE_HIT;
+    }
+  }
+  return CACHE_MISS;
 }
 
 Cache::Cache(int size, int assoc, int blocksz):size(size), 
@@ -161,7 +176,6 @@ RESULT Cache::read(uint32_t addr){
   }
 
 }
-
 
 // Basically same logic as read. Not sure if write buffers are needed as of right now
 RESULT Cache::write(uint32_t addr){
