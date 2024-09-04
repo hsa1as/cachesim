@@ -11,7 +11,7 @@
 \ Author: R Sai Ashwin  /
 / Roll No: NS24Z344     \
 \_______________________/
-       ___)( )(___  jgs
+       ___)( )(___  
       (((__) (__)))
 */
 
@@ -38,15 +38,17 @@ class Line{
   std::vector<int>   tags;
   std::vector<int>   counters;
   std::vector<bool>  valid;
+  std::vector<bool>  dirty;
   int                size;
   public:
   
   Line(int bpl, int blocksz);
-  // Replace block with oldaddress, with block having newaddress. Return tag of evicted block
+  // Place block in the line. Why separate function ? TODO
   uint64_t    replaceBlock(uint32_t newaddress);
-  // Get address of block having address = address
-  RESULT      getBlock(uint32_t address);  
-
+  // Read a block in line
+  RESULT      readBlock(uint32_t address);  
+  // Write to block in line
+  RESULT      writeBlock(uint32_t address);
 };
 
 class Cache{
@@ -65,13 +67,14 @@ class Cache{
 
   public:
   
-  Cache(int size, int assoc, int blocksz);
+         Cache(int size, int assoc, int blocksz);
   RESULT read(uint32_t addr);
   RESULT write(uint32_t addr); 
   RESULT placeVictim(uint32_t addr);
   void   createVC(int size, int assoc, int blocksz);
   void   makeVictim();
   void   setParent(Cache *parent);
+  RESULT swap(uint32_t addr_in_vc, uint32_t addr_in_L1);
 };
 
 #endif

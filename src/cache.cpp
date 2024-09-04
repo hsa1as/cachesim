@@ -11,7 +11,7 @@
 \ Author: R Sai Ashwin  /
 / Roll No: NS24Z344     \
 \_______________________/
-       ___)( )(___  jgs
+       ___)( )(___  
       (((__) (__)))
 */
 
@@ -20,13 +20,15 @@
 #include "cache.h"
 #include <iostream>
 Line::Line(int bpl, int blocksz): size(bpl), tags(bpl, 0), counters(bpl,0),
-                                  valid(bpl, false){}
+                                  dirty(bpl,0) ,valid(bpl, false){}
 // address: tag of block being replaced in line 
 // Retval: tag of the evicted block, if any
 // if there are no evicted blocks ( i.e some blocks are invalid )
 // we can use the upper 32 bits of the return value to signal this
 // ( ret >> 33 ) & 1 represents an error 
-// ( ret >> 34 ) & 1 represents usage of invalid block in the lne
+// ( ret >> 34 ) & 1 represents usage of invalid block in the line
+// ( ret >> 35 ) & 1 represents evicting of a dirty block. The owner
+// of the line needs to perform a writeback to the parent
 uint64_t Line::replaceBlock(uint32_t newaddress){
 
   uint64_t ret = 1 << 33;
@@ -56,20 +58,27 @@ uint64_t Line::replaceBlock(uint32_t newaddress){
   }
 
   // maxidx holds idx of block to be evicted.
+  // Check if evicted block is dirty
   ret = this->tags[maxidx];
+  if(this->dirty[maxidx]){
+    ret = ret | 1 << 35;
+  }
   this->tags[maxidx] = newaddress;
   this->counters[maxidx] = 0;
+  this->dirty[maxidx] = 0;
   for(int j = 0; j < this->size; j++){
     if(j == maxidx) continue;
     this->counters[j]++;
   }
+
   // Return tag of evicted block
+
   return ret;
 
 }
 
 // addr : tag of the requested block
-RESULT Line::getBlock(uint32_t addr){
+RESULT Line::readBlock(uint32_t addr){
 
   for(int i = 0; i < this->size; i++){
     if(this->tags[i] == addr){
@@ -113,7 +122,7 @@ RESULT Cache::read(uint32_t addr){
   addr = addr >> this->BITS_idx;
   uint32_t tag  = addr;
   Line line = this->lines[idx];
-  RESULT result = line.getBlock(tag);
+  RESULT result = line.readBlock(tag);
   if(result == CACHE_MISS){
     // oldblock holds tag of evicted block
     uint64_t oldblock = line.replaceBlock(addr);
@@ -139,6 +148,7 @@ RESULT Cache::read(uint32_t addr){
       }else{
         // Requested block IS in victim cache.
         // Swap oldblock in this cache with requested block in victim cache
+        vc->swap(addr_bak, vc_place_addr);
       }
      
     }else{
@@ -165,6 +175,7 @@ RESULT Cache::placeVictim(uint32_t addr){
     cerr<<"PlaceVictim called on cache that is not a victim cache\n";
     return CACHE_ERR;
   }
+
   return CACHE_MISS;
 }
 
@@ -179,3 +190,11 @@ void Cache::makeVictim(){
 void Cache::setParent(Cache *parent){
   this->parent = parent;
 }
+
+RESULT Cache::swap(uint32_t addr_in_vc, uint32_t addr_in_L1){
+  if(this->isVictim == false){
+    cerr<<"Swap called on cache that is not a victim cache\n";
+    return CACHE_ERR
+  }
+}
+
