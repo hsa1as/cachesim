@@ -80,6 +80,8 @@ int main(int argc, char** argv){
   cout<<"L1 Reads: "<<L1Cache.stat.reads<<endl;
   cout<<"L1 Read Misses: "<<L1Cache.stat.rmisses<<endl;
   cout<<"L1 Read Hits: "<<L1Cache.stat.rhits<<endl;
-
+  cout<<"L1 Writes: "<<L1Cache.stat.writes<<endl;
+  cout<<"L1 Write misses: "<<L1Cache.stat.wmisses<<endl;
+  cout<<"Writebacks from L1/VC: "<<L1Cache.stat.writebacks<<endl;
   
 }

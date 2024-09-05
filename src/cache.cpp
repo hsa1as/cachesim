@@ -207,6 +207,7 @@ RESULT Cache::read(uint32_t addr){
 
 // Basically same logic as read. Not sure if write buffers are needed as of right now
 RESULT Cache::write(uint32_t addr){
+  this->stat.writes++;
   uint32_t addr_bak = addr;
   uint32_t boff = addr & (0xFFFFFFFF ^ (0xFFFFFFFF << this->BITS_boff));
   addr = addr >> this->BITS_boff;
@@ -216,6 +217,7 @@ RESULT Cache::write(uint32_t addr){
   // Check if block in line
   RESULT result = this->lines[idx].writeBlock(tag);
   if(result == CACHE_MISS){
+    this->stat.wmisses++;
     // If block not in line, evict and place after read from parent and vc
     // oldblock holds tag of evicted block
     // TODO: instructing replaceBlock to not increment LRU counters to prevent 
@@ -264,6 +266,7 @@ RESULT Cache::write(uint32_t addr){
         // Put evicted oldblock in victim cache
         vc->placeVictim(vc_place_addr);
       }else{
+        this->stat.swap++;
         // Requested block IS in victim cache.
         // Swap oldblock in this cache with requested block in victim cache
         vc->swap(addr_bak, vc_place_addr);
@@ -278,6 +281,7 @@ RESULT Cache::write(uint32_t addr){
     }
     return CACHE_MISS;
   }else{
+    this->stat.whits++;
     return CACHE_HIT;
   }
 }
