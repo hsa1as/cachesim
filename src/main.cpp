@@ -16,9 +16,70 @@
 */
 #include "cache.h"
 #include<iostream>
+#include<fstream>
+
 using namespace std;
 
-int main(){
-  Cache mycache = Cache(32*1024, 2, 8);
-  cout<<"Cache object created\n No compilation issue\n. Happy";
+int main(int argc, char** argv){
+  if(argc != 8){
+    cerr<<"Need 8 arguments to run\n";
+    return -1;
+  }
+  int l1s = stoi(argv[1]), l1a= stoi(argv[2]), bsz= stoi(argv[3]), vcs= stoi(argv[4])
+    , l2s= stoi(argv[5]), l2a= stoi(argv[6]);
+  string filename = argv[7];
+  Cache L1Cache = Cache(l1s, l1a, bsz);
+  if(l2s != 0){
+    L1Cache.setParent(new Cache(l2s, l2a, bsz)); 
+  }
+  if(vcs != 0){
+    L1Cache.createVC(vcs, vcs/bsz, bsz);
+  }
+  char op;
+  string addr_s;
+   
+  ifstream infile(filename);
+  while(infile >> op >> addr_s){
+    char *p;
+    uint32_t addr = strtol(addr_s.c_str(), &p, 16);
+    RESULT res;
+    switch(op){
+      case 'r':
+        res = L1Cache.read(addr);
+        break;
+      case 'w':
+        L1Cache.write(addr);
+        break;
+    }
+  }
+  L1Cache.dumpCache();
+  
+  // DEBUG stdin
+ /*
+  int n;
+  cin>>n;
+  for(int i = 0; i < n; i++){
+    char *p;
+    cin>>op;
+    cin>>addr_s;
+    uint32_t addr = strtol(addr_s.c_str(), &p, 16);
+    RESULT res;
+    switch(op){
+      case 'r':
+        res = L1Cache.read(addr);
+        break;
+      case 'w':
+        L1Cache.write(addr);
+        break;
+    }
+    if(res == CACHE_HIT) cout<<"HIT!"<<endl;
+    else cout<<"MISS!"<<endl;
+    L1Cache.dumpCache();
+  }*/
+  cout<<"STATS\n";
+  cout<<"L1 Reads: "<<L1Cache.stat.reads<<endl;
+  cout<<"L1 Read Misses: "<<L1Cache.stat.rmisses<<endl;
+  cout<<"L1 Read Hits: "<<L1Cache.stat.rhits<<endl;
+
+  
 }

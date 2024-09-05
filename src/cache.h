@@ -27,24 +27,30 @@ enum RESULT{
 };
 
 class Statistics{
-  int misses;
-  int hits;
+public:
+  int rmisses;
+  int wmisses;
+  int rhits;
+  int whits;
   int reads;
   int writes;
   int swap;
+  int writebacks;
+  Statistics();
 };
 
 class Line{
+  public:
+
   std::vector<int>   tags;
   std::vector<int>   counters;
   std::vector<bool>  valid;
   std::vector<bool>  dirty;
   int                size;
-  public:
   
   Line(int bpl, int blocksz);
   // Place block in the line. Why separate function ? TODO
-  uint64_t    replaceBlock(uint32_t newaddress);
+  uint64_t    replaceBlock(uint32_t tag, uint8_t lru_inc);
   // Read a block in line
   RESULT      readBlock(uint32_t tag);  
   // Write to block in line
@@ -52,6 +58,8 @@ class Line{
 };
 
 class Cache{
+public:
+
   int                 size;
   int                 assoc;
   int                 blocksz;
@@ -65,7 +73,6 @@ class Cache{
   Cache *             parent;
   Cache *             vc;
 
-  public:
   
          Cache(int size, int assoc, int blocksz);
   RESULT read(uint32_t addr);
@@ -74,7 +81,9 @@ class Cache{
   void   createVC(int size, int assoc, int blocksz);
   void   makeVictim();
   void   setParent(Cache *parent);
+  void   dumpCache();
   RESULT swap(uint32_t addr_in_vc, uint32_t addr_in_L1);
+
 };
 
 #endif
