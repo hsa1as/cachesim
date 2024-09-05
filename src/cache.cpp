@@ -154,6 +154,9 @@ RESULT Cache::read(uint32_t addr){
   addr = addr >> this->BITS_idx;
   uint32_t tag  = addr;
   RESULT result = this->lines[idx].readBlock(tag);
+  // If we are a victim cache, we only want to return whether or not a block is in the cache without
+  // doing any allocation on our own
+  if(this->isVictim()) return result;
   if(result == CACHE_MISS){
     this->stat.rmisses++;
     uint64_t oldblock = this->lines[idx].replaceBlock(tag);
@@ -195,7 +198,7 @@ RESULT Cache::read(uint32_t addr){
      
     }else{
       if(this->parent==NULL) return CACHE_MISS;
-      this->parent->read(addr);
+      this->parent->read(addr_bak);
     }
     return CACHE_MISS;
   }else{
@@ -216,6 +219,8 @@ RESULT Cache::write(uint32_t addr){
   uint32_t tag  = addr;
   // Check if block in line
   RESULT result = this->lines[idx].writeBlock(tag);
+  // If we are victim, simply return the result
+  if(this->isVictim()) return result;
   if(result == CACHE_MISS){
     this->stat.wmisses++;
     // If block not in line, evict and place after read from parent and vc
@@ -261,8 +266,8 @@ RESULT Cache::write(uint32_t addr){
         // Get block from parent memory
         // TODO: Figure out:
         // Write allocate: If L1 misses on write, shoult L2 stats increase L2 read or L2 write?
-        // Currently doing write
-        result = parent->write(addr_bak);
+        // Currently doing read 
+        result = parent->read(addr_bak);
         // Put evicted oldblock in victim cache
         vc->placeVictim(vc_place_addr);
       }else{
@@ -274,7 +279,7 @@ RESULT Cache::write(uint32_t addr){
      
     }else{
       if(this->parent==NULL) return CACHE_MISS;
-      this->parent->write(addr);
+      this->parent->read(addr_bak);
       // TODO: Figure out:
       // Write allocate: If L1 misses on write, shoult L2 stats increase L2 read or L2 write?
       // Currently doing write
@@ -298,6 +303,7 @@ RESULT Cache::placeVictim(uint32_t addr){
 
 void Cache::createVC(int size, int assoc, int blocksz){
   this->vc = new Cache(size, assoc, blocksz);
+  this->vc->makeVictim();
 }
 
 void Cache::makeVictim(){
@@ -323,7 +329,6 @@ void Cache::dumpCache(){
     int blockidx = 0;
     for(auto x: line.tags){
       std::cout<<std::setfill('0')<<std::setw(8)<<std::hex<<x<<" "<<std::dec;
-      std::cout<<line.counters[blockidx]<<" ";
       if(line.dirty[blockidx]) std::cout<<"D";
       std::cout<<"\t\t";
       blockidx++;

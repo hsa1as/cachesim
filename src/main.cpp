@@ -33,7 +33,7 @@ int main(int argc, char** argv){
     L1Cache.setParent(new Cache(l2s, l2a, bsz)); 
   }
   if(vcs != 0){
-    L1Cache.createVC(vcs, vcs/bsz, bsz);
+    L1Cache.createVC(vcs*bsz, vcs, bsz);
   }
   char op;
   string addr_s;
@@ -83,5 +83,13 @@ int main(int argc, char** argv){
   cout<<"L1 Writes: "<<L1Cache.stat.writes<<endl;
   cout<<"L1 Write misses: "<<L1Cache.stat.wmisses<<endl;
   cout<<"Writebacks from L1/VC: "<<L1Cache.stat.writebacks<<endl;
-  
+  if(l1s != 0){
+    cout<<"L2 STATS\n";
+    cout<<"L2 Reads: "<<L1Cache.parent->stat.reads<<endl;
+    cout<<"L2 Read Misses: "<<L1Cache.parent->stat.rmisses<<endl;
+    cout<<"L2 Read Hits: "<<L1Cache.parent->stat.rhits<<endl;
+    cout<<"L2 Writes: "<<L1Cache.parent->stat.writes<<endl;
+    cout<<"L2 Write misses: "<<L1Cache.parent->stat.wmisses<<endl;
+    cout<<"Writebacks from L1/VC: "<<L1Cache.parent->stat.writebacks<<endl;
+  }  
 }
