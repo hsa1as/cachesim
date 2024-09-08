@@ -295,6 +295,27 @@ RESULT Cache::write(uint32_t addr){
   }
 }
 
+void Cache::setParent(Cache *parent){
+  this->parent = parent;
+}
+
+// Victim cache related functions
+void Cache::createVC(int size, int assoc, int blocksz){
+  this->vc = new Cache(size, assoc, blocksz);
+  this->vc->makeVictim();
+}
+
+void Cache::makeVictim(){
+  this->isVictim = true;
+}
+
+RESULT Cache::swap(uint32_t addr_in_vc, uint32_t addr_in_L1){
+  if(this->isVictim == false){
+    std::cerr<<"Swap called on cache that is not a victim cache\n";
+    return CACHE_ERR;
+  }
+  return CACHE_MISS;
+}
 // Method used only for victim caches
 RESULT Cache::placeVictim(uint32_t addr){
   if(this->isVictim == false){
@@ -305,31 +326,11 @@ RESULT Cache::placeVictim(uint32_t addr){
   return CACHE_MISS;
 }
 
-void Cache::createVC(int size, int assoc, int blocksz){
-  this->vc = new Cache(size, assoc, blocksz);
-  this->vc->makeVictim();
-}
-
-void Cache::makeVictim(){
-  this->isVictim = true;
-}
-
-void Cache::setParent(Cache *parent){
-  this->parent = parent;
-}
-
-RESULT Cache::swap(uint32_t addr_in_vc, uint32_t addr_in_L1){
-  if(this->isVictim == false){
-    std::cerr<<"Swap called on cache that is not a victim cache\n";
-    return CACHE_ERR;
-  }
-  return CACHE_MISS;
-}
 
 void Cache::dumpCache(){
   int lineidx = 0;
   for(auto line: this->lines){
-    std::cout<<"  set   "<<lineidx<<":\t";
+    std::cout<<std::left<<std::setw(8)<<"  set "<<std::setw(0)<<lineidx<<":\t";
     // Implement outputting LRU first
     // Make vector of pair -> tag and counters
     std::vector<std::pair<uint32_t, std::pair<uint32_t, bool>>> sorted_tag;

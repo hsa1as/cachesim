@@ -55,7 +55,7 @@ int main(int argc, char** argv){
   // Simulator config
   cout<<"===== Simulator configuration ====="<<endl;
   cout<<left<<setw(24)<<"  L1_SIZE:"<<setw(0)<<l1s<<endl;
-  cout<<left<<setw(24)<<"  L1_ASSOC:"<<setw(0)<<l2a<<endl;
+  cout<<left<<setw(24)<<"  L1_ASSOC:"<<setw(0)<<l1a<<endl;
   cout<<left<<setw(24)<<"  L1_BLOCKSIZE:"<<setw(0)<<bsz<<endl;
   cout<<left<<setw(24)<<"  VC_NUM_BLOCKS:"<<setw(0)<<vcs<<endl;
   cout<<left<<setw(24)<<"  L2_SIZE:"<<setw(0)<<l2s<<endl;
@@ -76,7 +76,7 @@ int main(int argc, char** argv){
   // Dump L2 Cache contents
   if(l2s != 0){
     // Dump L1 Cache contens
-    cout<<"==== L2 contents ===="<<endl;
+    cout<<"===== L2 contents ====="<<endl;
     L1Cache.parent->dumpCache();
     cout<<endl;
   }
@@ -89,7 +89,7 @@ int main(int argc, char** argv){
   cout<<L1Cache.stat.rmisses<<endl;
   cout<<left<<setw(51)<<"  c. number of L1 writes:"<<setw(0);
   cout<<L1Cache.stat.writes<<endl;
-  cout<<left<<setw(51)<<"  d. number of L1 write mises:"<<setw(0);
+  cout<<left<<setw(51)<<"  d. number of L1 write misses:"<<setw(0);
   cout<<L1Cache.stat.wmisses<<endl;
   cout<<left<<setw(51)<<"  e. number of swap requests:"<<setw(0);
   cout<<L1Cache.stat.swap<<endl;
@@ -119,8 +119,15 @@ int main(int argc, char** argv){
   cout<<left<<setw(51)<<"  o. number of writebacks from L2:"<<setw(0);
   if(l2s != 0)   cout<<L1Cache.parent->stat.writebacks<<endl;
   else cout<<0<<endl;
-  cout<<left<<setw(51)<<"  p. total memory traffic"<<setw(0);
-  cout<<L1Cache.stat.reads<<endl;
+  cout<<left<<setw(51)<<"  p. total memory traffic:"<<setw(0);
+  if(l2s != 0){
+    int traffic = L1Cache.parent->stat.rmisses + L1Cache.parent->stat.wmisses + L1Cache.parent->stat.writebacks;
+    cout<<traffic<<endl;
+  }else{
+    int traffic = L1Cache.stat.rmisses + L1Cache.stat.wmisses + L1Cache.stat.writebacks - L1Cache.stat.swap;
+    cout<<traffic<<endl;
+  }
+
   cout<<endl;  
 
   cout<<"===== Simulation results (performance) ====="<<endl;
