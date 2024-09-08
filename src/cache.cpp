@@ -359,7 +359,7 @@ uint64_t Cache::swap(uint32_t addr_in_vc, uint32_t addr_in_L1, bool dirty){
   // only one line
   for(int i = 0; i < this->lines[0].size; i++){
     if(this->lines[0].tags[i] == tag_in_vc){
-      retval = tag_in_vc << (this->BITS_idx + this->BITS_boff);
+      retval = addr_in_vc;
       if(this->lines[0].dirty[i]) retval = retval | (1LL << 35);
       if(this->lines[0].valid[i] == false) retval = retval | (1LL << 34); // shouldn't happen
       this->lines[0].tags[i] = tag_in_L1;
@@ -411,7 +411,6 @@ uint64_t Cache::placeVictim(uint32_t addr, bool dirty){
   // bitmagic to reconstruct address while retaining status bits in upper 32 bits 
   return ((evicted_block & 0xFFFFFFFFLL<<32) | ((evicted_block & 0xFFFFFFFF)<<(this->BITS_boff + this->BITS_idx)));
 
-  return CACHE_MISS;
 }
 
 // Output functions
