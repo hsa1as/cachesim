@@ -344,6 +344,6 @@ void Cache::dumpCache(){
       std::cout<<"\t";
     }
     std::cout<<std::endl;
-
+    lineidx++;
   } 
 }
