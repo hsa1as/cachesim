@@ -15,12 +15,15 @@
       (((__) (__)))
 */
 
-#include<stdio.h>
+#include <algorithm>
+#include <stdio.h>
 #include <cmath>
 #include <cstdlib>
 #include "cache.h"
 #include <iostream>
 #include <iomanip>
+#include <utility>
+#include <algorithm>
 
 Statistics::Statistics(){
   this->rmisses = 0;
@@ -30,6 +33,7 @@ Statistics::Statistics(){
   this->reads = 0;
   this->writes = 0;
   this->swap = 0;
+  this->actual_swap = 0;
   this->writebacks = 0;
 }
 
@@ -170,7 +174,7 @@ RESULT Cache::read(uint32_t addr){
     if(((oldblock >> 34) & 1)!=1 && ((oldblock >> 35) & 1) == 1){
       // We evicted a valid, dirty block. Issue a writeback
       uint32_t parent_write_addr = oldblock & 0xFFFFFFFF;
-      parent_write_addr = parent_write_addr << (BITS_idx + BITS_boff) + idx << BITS_boff;
+      parent_write_addr = (parent_write_addr << (BITS_idx + BITS_boff)) + (idx << BITS_boff);
       if(this->parent != NULL) this->parent->write(parent_write_addr);
       this->stat.writebacks++;
     }
@@ -182,7 +186,7 @@ RESULT Cache::read(uint32_t addr){
     // Check bit 34 to see if a block was evicted from the line
     if(this->vc != NULL && !((oldblock >> 34) & 1)){
       RESULT vc_res = this->vc->read(addr_bak);
-      uint32_t vc_place_addr = ((oldblock & 0xFFFFFFFF) << (BITS_idx + BITS_boff)) + idx << BITS_boff ;
+      uint32_t vc_place_addr = ((oldblock & 0xFFFFFFFF) << (BITS_idx + BITS_boff)) + (idx << BITS_boff) ;
       if(vc_res == CACHE_MISS){
         // Requested block is NOT in victim cache
         // Get block from parent memory
@@ -241,7 +245,7 @@ RESULT Cache::write(uint32_t addr){
     if(((oldblock >> 34) & 1)!=1 && ((oldblock >> 35) & 1) == 1){
       // We evicted a valid, dirty block. Issue a writeback
       uint32_t parent_write_addr = oldblock & 0xFFFFFFFF;
-      parent_write_addr = parent_write_addr << (BITS_idx + BITS_boff) + idx << BITS_boff;
+      parent_write_addr = (parent_write_addr << (BITS_idx + BITS_boff)) + (idx << BITS_boff);
       if(this->parent != NULL) this->parent->write(parent_write_addr);
       this->stat.writebacks++;
     }
@@ -260,7 +264,7 @@ RESULT Cache::write(uint32_t addr){
     if(this->vc != NULL && !((oldblock >> 34) & 1)){
       // Do not need to call write on victim cache
       RESULT vc_res = this->vc->read(addr_bak);
-      uint32_t vc_place_addr = (oldblock << (BITS_idx + BITS_boff)) + idx << BITS_boff ;
+      uint32_t vc_place_addr = (oldblock << (BITS_idx + BITS_boff)) + (idx << BITS_boff) ;
       if(vc_res == CACHE_MISS){
         // Requested block is NOT in victim cache
         // Get block from parent memory
@@ -326,14 +330,19 @@ void Cache::dumpCache(){
   int lineidx = 0;
   for(auto line: this->lines){
     std::cout<<"  set   "<<lineidx<<":\t";
-    int blockidx = 0;
-    for(auto x: line.tags){
-      std::cout<<std::setfill('0')<<std::setw(8)<<std::hex<<x<<" "<<std::dec;
-      if(line.dirty[blockidx]) std::cout<<"D";
-      std::cout<<"\t\t";
-      blockidx++;
+    // Implement outputting LRU first
+    // Make vector of pair -> tag and counters
+    std::vector<std::pair<uint32_t, std::pair<uint32_t, bool>>> sorted_tag;
+    for(int i = 0; i < line.size; i++){
+      sorted_tag.push_back(std::make_pair(line.counters[i], std::make_pair(line.tags[i], line.dirty[i])));
     }
-    lineidx++;
+    std::sort(sorted_tag.begin(), sorted_tag.end());
+    for(auto x: sorted_tag){
+      std::cout<<std::hex<<x.second.first<<" "<<std::dec;
+      if(x.second.second) std::cout<<"D";
+      else std::cout<<" ";
+      std::cout<<"\t";
+    }
     std::cout<<std::endl;
 
   } 

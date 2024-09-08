@@ -17,7 +17,7 @@
 #include "cache.h"
 #include<iostream>
 #include<fstream>
-
+#include<iomanip>
 using namespace std;
 
 int main(int argc, char** argv){
@@ -52,8 +52,80 @@ int main(int argc, char** argv){
         break;
     }
   }
+  // Simulator config
+  cout<<"===== Simulator configuration ====="<<endl;
+  cout<<left<<setw(24)<<"  L1_SIZE:"<<setw(0)<<l1s<<endl;
+  cout<<left<<setw(24)<<"  L1_ASSOC:"<<setw(0)<<l2a<<endl;
+  cout<<left<<setw(24)<<"  L1_BLOCKSIZE:"<<setw(0)<<bsz<<endl;
+  cout<<left<<setw(24)<<"  VC_NUM_BLOCKS:"<<setw(0)<<vcs<<endl;
+  cout<<left<<setw(24)<<"  L2_SIZE:"<<setw(0)<<l2s<<endl;
+  cout<<left<<setw(24)<<"  L2_ASSOC:"<<setw(0)<<l2a<<endl;
+  cout<<left<<setw(24)<<"  trace_file:"<<setw(0)<<filename<<endl;
+  cout<<endl;
+
+  // Dump L1 Cache contens
+  cout<<"===== L1 contents ====="<<endl;
   L1Cache.dumpCache();
-  
+  cout<<endl;
+
+  if(vcs != 0){
+    cout<<"===== VC contents ====="<<endl;
+    L1Cache.vc->dumpCache();
+    cout<<endl;
+  }
+  // Dump L2 Cache contents
+  if(l2s != 0){
+    // Dump L1 Cache contens
+    cout<<"==== L2 contents ===="<<endl;
+    L1Cache.parent->dumpCache();
+    cout<<endl;
+  }
+  // Proper STATS
+  cout<<fixed<<setprecision(4);
+  cout<<"===== Simulation results (raw) ====="<<endl;
+  cout<<left<<setw(51)<<"  a. number of L1 reads:"<<setw(0);
+  cout<<L1Cache.stat.reads<<endl;
+  cout<<left<<setw(51)<<"  b. number of L1 read misses:"<<setw(0);
+  cout<<L1Cache.stat.rmisses<<endl;
+  cout<<left<<setw(51)<<"  c. number of L1 writes:"<<setw(0);
+  cout<<L1Cache.stat.writes<<endl;
+  cout<<left<<setw(51)<<"  d. number of L1 write mises:"<<setw(0);
+  cout<<L1Cache.stat.wmisses<<endl;
+  cout<<left<<setw(51)<<"  e. number of swap requests:"<<setw(0);
+  cout<<L1Cache.stat.swap<<endl;
+  cout<<left<<setw(51)<<"  f. swap request rate:"<<setw(0);
+  cout<<(double)((double)L1Cache.stat.swap/(L1Cache.stat.reads + L1Cache.stat.writes))<<endl;
+  cout<<left<<setw(51)<<"  g. number of swaps:"<<setw(0);
+  cout<<L1Cache.stat.actual_swap<<endl;
+  cout<<left<<setw(51)<<"  h. combined L1+VC miss rate:"<<setw(0);
+  cout<<(double)(((double)L1Cache.stat.rmisses + L1Cache.stat.wmisses - L1Cache.stat.actual_swap)/(L1Cache.stat.reads + L1Cache.stat.writes))<<endl;
+  cout<<left<<setw(51)<<"  i. number writebacks from L1/VC:"<<setw(0);
+  cout<<L1Cache.stat.writebacks<<endl;
+  cout<<left<<setw(51)<<"  j. number of L2 reads:"<<setw(0);
+  if(l2s != 0) cout<<L1Cache.parent->stat.reads<<endl;
+  else cout<<0<<endl;
+  cout<<left<<setw(51)<<"  k. number of L2 read misses:"<<setw(0);
+  if(l2s != 0) cout<<L1Cache.parent->stat.rmisses<<endl;
+  else cout<<0<<endl;
+  cout<<left<<setw(51)<<"  l. number of L2 writes:"<<setw(0);
+  if(l2s != 0)   cout<<L1Cache.parent->stat.writes<<endl;
+  else cout<<0<<endl;
+  cout<<left<<setw(51)<<"  m. number of L2 write misses:"<<setw(0);
+  if(l2s != 0)  cout<<L1Cache.parent->stat.wmisses<<endl;
+  else cout<<0<<endl;
+  cout<<left<<setw(51)<<"  n. L2 miss rate:"<<setw(0);
+  if(l2s != 0)   cout<<(double)(((double)L1Cache.parent->stat.rmisses)/(L1Cache.parent->stat.reads))<<endl;
+  else cout<<0.0f<<endl;
+  cout<<left<<setw(51)<<"  o. number of writebacks from L2:"<<setw(0);
+  if(l2s != 0)   cout<<L1Cache.parent->stat.writebacks<<endl;
+  else cout<<0<<endl;
+  cout<<left<<setw(51)<<"  p. total memory traffic"<<setw(0);
+  cout<<L1Cache.stat.reads<<endl;
+  cout<<endl;  
+
+  cout<<"===== Simulation results (performance) ====="<<endl;
+
+}
   // DEBUG stdin
  /*
   int n;
@@ -76,20 +148,4 @@ int main(int argc, char** argv){
     else cout<<"MISS!"<<endl;
     L1Cache.dumpCache();
   }*/
-  cout<<"STATS\n";
-  cout<<"L1 Reads: "<<L1Cache.stat.reads<<endl;
-  cout<<"L1 Read Misses: "<<L1Cache.stat.rmisses<<endl;
-  cout<<"L1 Read Hits: "<<L1Cache.stat.rhits<<endl;
-  cout<<"L1 Writes: "<<L1Cache.stat.writes<<endl;
-  cout<<"L1 Write misses: "<<L1Cache.stat.wmisses<<endl;
-  cout<<"Writebacks from L1/VC: "<<L1Cache.stat.writebacks<<endl;
-  if(l2s != 0){
-    cout<<"L2 STATS\n";
-    cout<<"L2 Reads: "<<L1Cache.parent->stat.reads<<endl;
-    cout<<"L2 Read Misses: "<<L1Cache.parent->stat.rmisses<<endl;
-    cout<<"L2 Read Hits: "<<L1Cache.parent->stat.rhits<<endl;
-    cout<<"L2 Writes: "<<L1Cache.parent->stat.writes<<endl;
-    cout<<"L2 Write misses: "<<L1Cache.parent->stat.wmisses<<endl;
-    cout<<"Writebacks from L1/VC: "<<L1Cache.parent->stat.writebacks<<endl;
-  }  
-}
+

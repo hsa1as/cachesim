@@ -35,6 +35,7 @@ public:
   int reads;
   int writes;
   int swap;
+  int actual_swap;
   int writebacks;
   Statistics();
 };
@@ -42,11 +43,11 @@ public:
 class Line{
   public:
 
-  std::vector<int>   tags;
-  std::vector<int>   counters;
-  std::vector<bool>  valid;
-  std::vector<bool>  dirty;
-  int                size;
+  std::vector<uint32_t>   tags;
+  std::vector<uint32_t>   counters;
+  std::vector<bool>       valid;
+  std::vector<bool>       dirty;
+  int                     size;
   
   Line(int bpl, int blocksz);
   // Place block in the line. Why separate function ? TODO
