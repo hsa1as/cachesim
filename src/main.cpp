@@ -83,7 +83,7 @@ int main(int argc, char** argv){
   cout<<"L1 Writes: "<<L1Cache.stat.writes<<endl;
   cout<<"L1 Write misses: "<<L1Cache.stat.wmisses<<endl;
   cout<<"Writebacks from L1/VC: "<<L1Cache.stat.writebacks<<endl;
-  if(l1s != 0){
+  if(l2s != 0){
     cout<<"L2 STATS\n";
     cout<<"L2 Reads: "<<L1Cache.parent->stat.reads<<endl;
     cout<<"L2 Read Misses: "<<L1Cache.parent->stat.rmisses<<endl;

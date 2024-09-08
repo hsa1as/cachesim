@@ -156,7 +156,7 @@ RESULT Cache::read(uint32_t addr){
   RESULT result = this->lines[idx].readBlock(tag);
   // If we are a victim cache, we only want to return whether or not a block is in the cache without
   // doing any allocation on our own
-  if(this->isVictim()) return result;
+  if(this->isVictim) return result;
   if(result == CACHE_MISS){
     this->stat.rmisses++;
     uint64_t oldblock = this->lines[idx].replaceBlock(tag);
@@ -220,7 +220,7 @@ RESULT Cache::write(uint32_t addr){
   // Check if block in line
   RESULT result = this->lines[idx].writeBlock(tag);
   // If we are victim, simply return the result
-  if(this->isVictim()) return result;
+  if(this->isVictim) return result;
   if(result == CACHE_MISS){
     this->stat.wmisses++;
     // If block not in line, evict and place after read from parent and vc
@@ -230,7 +230,7 @@ RESULT Cache::write(uint32_t addr){
     // ( needed to update dirty bits after block allocation through replaceBlock )
     // suggested soln: let replaceBlock NEVER update LRU counters
     // Do a second call to readBlock for Cache::read methods to increment LRU counters for read
-    uint64_t oldblock = this->lines[idx].replaceBlock(addr, 0);
+    uint64_t oldblock = this->lines[idx].replaceBlock(tag, 0);
     if((oldblock >> 33 ) & 1 ){
       std::cerr<<"Replace Block failed with return -1 in "
         <<__FILE__<<" at lineno "<<__LINE__<<std::endl;
@@ -259,7 +259,7 @@ RESULT Cache::write(uint32_t addr){
     // Check bit 34 to see if a block was evicted from the line
     if(this->vc != NULL && !((oldblock >> 34) & 1)){
       // Do not need to call write on victim cache
-      RESULT vc_res = vc->read(addr_bak);
+      RESULT vc_res = this->vc->read(addr_bak);
       uint32_t vc_place_addr = (oldblock << (BITS_idx + BITS_boff)) + idx << BITS_boff ;
       if(vc_res == CACHE_MISS){
         // Requested block is NOT in victim cache
