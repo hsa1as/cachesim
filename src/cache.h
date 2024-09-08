@@ -20,6 +20,8 @@
 #include<cstdint>
 #include<vector>
 
+#define ERROR(x) std::cerr<<"\033[1;31m"<<x<<"\033[0m"<<std::endl
+
 enum RESULT{
   CACHE_HIT,
   CACHE_MISS,
@@ -56,6 +58,8 @@ class Line{
   RESULT      readBlock(uint32_t tag);  
   // Write to block in line
   RESULT      writeBlock(uint32_t tag);
+  // Set dirty bit for tag
+  RESULT      setDirty(uint32_t tag);
 };
 
 class Cache{
@@ -75,15 +79,15 @@ public:
   Cache *             vc;
 
   
-         Cache(int size, int assoc, int blocksz);
-  RESULT read(uint32_t addr);
-  RESULT write(uint32_t addr); 
-  RESULT placeVictim(uint32_t addr);
-  void   createVC(int size, int assoc, int blocksz);
-  void   makeVictim();
-  void   setParent(Cache *parent);
-  void   dumpCache();
-  RESULT swap(uint32_t addr_in_vc, uint32_t addr_in_L1);
+            Cache(int size, int assoc, int blocksz);
+  RESULT    read(uint32_t addr);
+  RESULT    write(uint32_t addr); 
+  uint64_t  placeVictim(uint32_t addr, bool dirty);
+  void      createVC(int size, int assoc, int blocksz);
+  void      makeVictim();
+  void      setParent(Cache *parent);
+  void      dumpCache();
+  uint64_t  swap(uint32_t addr_in_vc, uint32_t addr_in_L1, bool dirty);
 
 };
 

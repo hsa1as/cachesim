@@ -34,11 +34,15 @@ int main(int argc, char** argv){
   }
   if(vcs != 0){
     L1Cache.createVC(vcs*bsz, vcs, bsz);
+    if(L1Cache.vc == 0){
+      ERROR("WTF?");
+    }
   }
   char op;
   string addr_s;
    
   ifstream infile(filename);
+  uint64_t i = 0;
   while(infile >> op >> addr_s){
     char *p;
     uint32_t addr = strtol(addr_s.c_str(), &p, 16);
@@ -51,6 +55,12 @@ int main(int argc, char** argv){
         L1Cache.write(addr);
         break;
     }
+    //if(i <= 100){
+     // cout<<"===== operation "<<i<<" ====="<<endl;
+      //L1Cache.dumpCache();
+      //cout<<endl;
+      //i++;
+    //}
   }
   // Simulator config
   cout<<"===== Simulator configuration ====="<<endl;
@@ -124,7 +134,7 @@ int main(int argc, char** argv){
     int traffic = L1Cache.parent->stat.rmisses + L1Cache.parent->stat.wmisses + L1Cache.parent->stat.writebacks;
     cout<<traffic<<endl;
   }else{
-    int traffic = L1Cache.stat.rmisses + L1Cache.stat.wmisses + L1Cache.stat.writebacks - L1Cache.stat.swap;
+    int traffic = L1Cache.stat.rmisses + L1Cache.stat.wmisses + L1Cache.stat.writebacks - L1Cache.stat.actual_swap;
     cout<<traffic<<endl;
   }
 

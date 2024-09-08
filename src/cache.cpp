@@ -25,6 +25,7 @@
 #include <utility>
 #include <algorithm>
 
+
 Statistics::Statistics(){
   this->rmisses = 0;
   this->wmisses = 0;
@@ -131,6 +132,17 @@ RESULT Line::writeBlock(uint32_t tag){
   return CACHE_MISS;
 }
 
+// Set dirty bit for a block in the line
+RESULT Line::setDirty(uint32_t tag){
+  for(int i = 0; i < this->size; i++){
+    if(this->tags[i] == tag){
+      this->dirty[i] = true;
+      return CACHE_HIT;
+    }
+  }
+  return CACHE_MISS;
+}
+
 Cache::Cache(int _size, int _assoc, int _blocksz):size(_size), 
                                                assoc(_assoc), blocksz(_blocksz), 
                                                numlines(_size/(_assoc*_blocksz)){
@@ -165,13 +177,14 @@ RESULT Cache::read(uint32_t addr){
     this->stat.rmisses++;
     uint64_t oldblock = this->lines[idx].replaceBlock(tag);
     if((oldblock >> 33 ) & 1 ){
-      std::cerr<<"Replace Block failed with return -1 in "
-        <<__FILE__<<" at lineno "<<__LINE__<<std::endl;
+      ERROR("Replace Block failed with return -1");
     }
     // You just evicted a block. what if: it is valid, and dirty?
-    // Need to writeback
+    // Need to writeback, but only if vc does NOT exist 
+    // if vc exists, this evicted block is guaranteed to end up in vc. 
+    // writebacks will be taken care of when the thing is evicted from vc
     // TODO: figure out if VC swap happens with a dirty block what happens
-    if(((oldblock >> 34) & 1)!=1 && ((oldblock >> 35) & 1) == 1){
+    if(((oldblock >> 34) & 1)!=1 && ((oldblock >> 35) & 1) == 1 && this->vc == NULL){
       // We evicted a valid, dirty block. Issue a writeback
       uint32_t parent_write_addr = oldblock & 0xFFFFFFFF;
       parent_write_addr = (parent_write_addr << (BITS_idx + BITS_boff)) + (idx << BITS_boff);
@@ -185,19 +198,32 @@ RESULT Cache::read(uint32_t addr){
     // address as the parameter. oldblock has to be modified to inlcude all the bits now;
     // Check bit 34 to see if a block was evicted from the line
     if(this->vc != NULL && !((oldblock >> 34) & 1)){
+      this->stat.swap++;
       RESULT vc_res = this->vc->read(addr_bak);
       uint32_t vc_place_addr = ((oldblock & 0xFFFFFFFF) << (BITS_idx + BITS_boff)) + (idx << BITS_boff) ;
       if(vc_res == CACHE_MISS){
         // Requested block is NOT in victim cache
         // Get block from parent memory
-        result = this->parent->read(addr_bak);
+        if(this->parent != NULL) result = this->parent->read(addr_bak);
         // Put evicted oldblock in victim cache
-        this->vc->placeVictim(vc_place_addr);
+        bool isdirty = (oldblock >> 35) & 1;
+        uint64_t vc_evicted_block = this->vc->placeVictim(vc_place_addr, isdirty);
+        // Maybe i shouldn't do this?
+        if((vc_evicted_block >> 35) & 1 && !((vc_evicted_block >> 34) & 1)){
+          // The VC Evicted a block that was dirty. We need to issue a VC writeback to parent.
+          if(this->parent != NULL) this->parent->write(vc_evicted_block & 0xFFFFFFFF);
+          this->stat.writebacks++;
+        }
       }else{
-        this->stat.swap++;
+        this->stat.actual_swap++;
         // Requested block IS in victim cache.
         // Swap oldblock in this cache with requested block in victim cache
-        this->vc->swap(addr_bak, vc_place_addr);
+        bool isdirty = (oldblock >> 35) & 1;
+        uint64_t vc_swapped_block = this->vc->swap(addr_bak, vc_place_addr, isdirty);
+        if(!(vc_swapped_block >> 34 & 1) && (vc_swapped_block >> 35 & 1)){
+          // Need to set dirty bit for the block that we just brought 
+          this->lines[idx].setDirty(addr);  
+        }
       }
      
     }else{
@@ -236,13 +262,12 @@ RESULT Cache::write(uint32_t addr){
     // Do a second call to readBlock for Cache::read methods to increment LRU counters for read
     uint64_t oldblock = this->lines[idx].replaceBlock(tag, 0);
     if((oldblock >> 33 ) & 1 ){
-      std::cerr<<"Replace Block failed with return -1 in "
-        <<__FILE__<<" at lineno "<<__LINE__<<std::endl;
+      ERROR("Replace Block failed with return -1");
     }
     // You just evicted a block. what if: it is valid, and dirty?
     // Need to writeback
     // TODO: figure out if VC swap happens with a dirty block what happens
-    if(((oldblock >> 34) & 1)!=1 && ((oldblock >> 35) & 1) == 1){
+    if(((oldblock >> 34) & 1) != 1 && ((oldblock >> 35) & 1) == 1 && this->vc == NULL){
       // We evicted a valid, dirty block. Issue a writeback
       uint32_t parent_write_addr = oldblock & 0xFFFFFFFF;
       parent_write_addr = (parent_write_addr << (BITS_idx + BITS_boff)) + (idx << BITS_boff);
@@ -254,7 +279,7 @@ RESULT Cache::write(uint32_t addr){
     // after allocating the block in the line.
     RESULT intermediate = this->lines[idx].writeBlock(tag);
     if(intermediate != CACHE_HIT){
-      std::cerr<<"Cache MISS after placing block in line. Should not have happened\n";
+     ERROR("Cache MISS after placing block in line. Should not have happened\n");
     }
     // Victim cache interactions
     // Victim cache is fully associative and has different tag/idx/ bit numbers
@@ -262,6 +287,7 @@ RESULT Cache::write(uint32_t addr){
     // address as the parameter. oldblock has to be modified to inlcude all the bits now;
     // Check bit 34 to see if a block was evicted from the line
     if(this->vc != NULL && !((oldblock >> 34) & 1)){
+      this->stat.swap++;
       // Do not need to call write on victim cache
       RESULT vc_res = this->vc->read(addr_bak);
       uint32_t vc_place_addr = (oldblock << (BITS_idx + BITS_boff)) + (idx << BITS_boff) ;
@@ -271,22 +297,31 @@ RESULT Cache::write(uint32_t addr){
         // TODO: Figure out:
         // Write allocate: If L1 misses on write, shoult L2 stats increase L2 read or L2 write?
         // Currently doing read 
-        result = parent->read(addr_bak);
+        if(this->parent != NULL) result = this->parent->read(addr_bak);
         // Put evicted oldblock in victim cache
-        vc->placeVictim(vc_place_addr);
+        // Check if oldblock is a dirty block
+        bool isdirty = (oldblock >> 35) & 1;
+        uint64_t vc_evicted_block = this->vc->placeVictim(vc_place_addr, isdirty);
+        if( !( ( vc_evicted_block >> 34 ) & 1 ) && ( ( vc_evicted_block >> 35 ) & 1 ) ){
+          // The VC Evicted a block that was valid and dirty. We need to issue a VC writeback to parent.
+          if(this->parent != NULL) this->parent->write(vc_evicted_block & 0xFFFFFFFF);
+          this->stat.writebacks++;
+        }
       }else{
-        this->stat.swap++;
+        this->stat.actual_swap++;
         // Requested block IS in victim cache.
         // Swap oldblock in this cache with requested block in victim cache
-        vc->swap(addr_bak, vc_place_addr);
+        bool isdirty = (oldblock >> 35) & 1;
+        uint64_t vc_swapped_block = this->vc->swap(addr_bak, vc_place_addr, isdirty);
+        if(!(vc_swapped_block >> 34 & 1) && ((vc_swapped_block >> 35) & 1)){
+          // Need to set dirty bit for the block that we just brought 
+          this->lines[idx].setDirty(addr);  
+        }
+        
       }
-     
-    }else{
+     }else{
       if(this->parent==NULL) return CACHE_MISS;
       this->parent->read(addr_bak);
-      // TODO: Figure out:
-      // Write allocate: If L1 misses on write, shoult L2 stats increase L2 read or L2 write?
-      // Currently doing write
     }
     return CACHE_MISS;
   }else{
@@ -302,6 +337,9 @@ void Cache::setParent(Cache *parent){
 // Victim cache related functions
 void Cache::createVC(int size, int assoc, int blocksz){
   this->vc = new Cache(size, assoc, blocksz);
+  if(this->vc == 0){
+    ERROR("new Cache returned 0 while making a victim cache");
+  }
   this->vc->makeVictim();
 }
 
@@ -309,24 +347,72 @@ void Cache::makeVictim(){
   this->isVictim = true;
 }
 
-RESULT Cache::swap(uint32_t addr_in_vc, uint32_t addr_in_L1){
+uint64_t Cache::swap(uint32_t addr_in_vc, uint32_t addr_in_L1, bool dirty){
   if(this->isVictim == false){
-    std::cerr<<"Swap called on cache that is not a victim cache\n";
-    return CACHE_ERR;
+    ERROR("Swap called on cache that is not a victim cache\n");
+    return 1LL<<33; 
   }
-  return CACHE_MISS;
+  uint64_t retval = 1LL<<33;
+  uint32_t tag_in_vc = addr_in_vc >> (this->BITS_boff + this->BITS_idx);
+  uint32_t tag_in_L1 = addr_in_L1 >> (this->BITS_boff + this->BITS_idx);
+  // just do this manually atp cause the object model ive made is so bad
+  // only one line
+  for(int i = 0; i < this->lines[0].size; i++){
+    if(this->lines[0].tags[i] == tag_in_vc){
+      retval = tag_in_vc;
+      if(this->lines[0].dirty[i]) retval = retval | (1LL << 35);
+      if(this->lines[0].valid[i] == false) retval = retval | (1LL << 34); // shouldn't happen
+      this->lines[0].tags[i] = tag_in_L1;
+      for(int j = 0; j < this->lines[0].size; j++){
+        if(i == j) continue;
+        this->lines[0].counters[j]++;
+      }
+      this->lines[0].dirty[i] = dirty;
+      this->lines[0].valid[i] = true;
+    }
+  }
+  return retval;
 }
 // Method used only for victim caches
-RESULT Cache::placeVictim(uint32_t addr){
+uint64_t Cache::placeVictim(uint32_t addr, bool dirty){
   if(this->isVictim == false){
-    std::cerr<<"PlaceVictim called on cache that is not a victim cache\n";
-    return CACHE_ERR;
+    ERROR("PlaceVictim called on cache that is not a victim cache\n");
+    return 1LL<<33;
   }
+  // place addr into this->lines[0] and set valid, dirty if(dirty), and update counters
+  uint32_t addr_bak = addr;
+  uint32_t boff = addr & (0xFFFFFFFF ^ (0xFFFFFFFF << this->BITS_boff));
+  addr = addr >> this->BITS_boff;
+  uint32_t idx  = addr & (0xFFFFFFFF ^ (0xFFFFFFFF << this->BITS_idx));
+  addr = addr >> this->BITS_idx;
+  uint32_t tag  = addr;
+  RESULT result = this->lines[idx].readBlock(tag);
+  if(result != CACHE_MISS){
+    ERROR("This shouldn't have happened. placeVictim was called when the block exists in VC");
+  }
+  // replace a block in the line of VC with new block
+  // do NOT update LRU counters if dirty because we will use writeBlock on the line
+  // to set the dirty bit
+  uint64_t evicted_block;
+  if(dirty){
+    evicted_block = this->lines[idx].replaceBlock(tag, 0);
+    RESULT write_result = this->lines[idx].writeBlock(tag);
+    if(write_result != CACHE_HIT){
+      ERROR("writeBlock missed in placeVictim even after replaceBlock call");
+      return 1LL<<33;
+    }
+  }else{
+    evicted_block = this->lines[idx].replaceBlock(tag, 1);
+  }
+  // I think we can directly return evicted block?
+  // I could implement writebacks here instead of doing it in L1
+  // ,but that requires planning that i didn't do. 
+  return evicted_block;
 
   return CACHE_MISS;
 }
 
-
+// Output functions
 void Cache::dumpCache(){
   int lineidx = 0;
   for(auto line: this->lines){
