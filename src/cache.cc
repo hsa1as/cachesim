@@ -24,7 +24,7 @@
 #include <iomanip>
 #include <utility>
 #include <algorithm>
-
+#include "parse.h"
 
 Statistics::Statistics(){
   this->rmisses = 0;
@@ -290,7 +290,7 @@ RESULT Cache::write(uint32_t addr){
       this->stat.swap++;
       // Do not need to call write on victim cache
       RESULT vc_res = this->vc->read(addr_bak);
-      uint32_t vc_place_addr = (oldblock << (BITS_idx + BITS_boff)) + (idx << BITS_boff) ;
+      uint32_t vc_place_addr = ((oldblock & 0xFFFFFFFF) << (BITS_idx + BITS_boff)) + (idx << BITS_boff) ;
       if(vc_res == CACHE_MISS){
         // Requested block is NOT in victim cache
         // Get block from parent memory
