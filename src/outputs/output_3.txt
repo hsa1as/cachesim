@@ -185,14 +185,14 @@
   h. combined L1+VC miss rate:                     0.1314
   i. number writebacks from L1/VC:                 7598
   j. number of L2 reads:                           13143
-  k. number of L2 read misses:                     5949
+  k. number of L2 read misses:                     5953
   l. number of L2 writes:                          7598
   m. number of L2 write misses:                    24
-  n. L2 miss rate:                                 0.4526
-  o. number of writebacks from L2:                 4033
-  p. total memory traffic:                         10006
+  n. L2 miss rate:                                 0.4529
+  o. number of writebacks from L2:                 4037
+  p. total memory traffic:                         10014
 
 ===== Simulation results (performance) =====
-1. average access time: 1.0009
-2. energy-delay product: 100052455.0304
+1. average access time: 1.0014
+2. energy-delay product: 100148103.0112
 3. total area: 0.0739

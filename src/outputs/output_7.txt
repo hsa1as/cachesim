@@ -172,7 +172,7 @@
   set   92:	8004e  	800a2 D	800ab D	800aa D	
   set   93:	8004e  	8006c D	800a2 D	800ab D	
   set   94:	80088 D	800a2 D	800ab D	800aa D	
-  set   95:	80088 D	8004e  	800a2 D	800ab D	
+  set   95:	8004e  	80088 D	800a2 D	800ab D	
   set   96:	80073  	800a2 D	800ab D	800aa D	
   set   97:	8006a  	80088 D	800a2 D	800ab D	
   set   98:	80054 D	8004e  	8003e  	800a2 D	

@@ -203,7 +203,6 @@ RESULT Cache::read(uint32_t addr){
       if(vc_res == CACHE_MISS){
         // Requested block is NOT in victim cache
         // Get block from parent memory
-        if(this->parent != NULL) result = this->parent->read(addr_bak);
         // Put evicted oldblock in victim cache
         bool isdirty = (oldblock >> 35) & 1;
         uint64_t vc_evicted_block = this->vc->placeVictim(vc_place_addr, isdirty);
@@ -213,13 +212,17 @@ RESULT Cache::read(uint32_t addr){
           if(this->parent != NULL) this->parent->write(vc_evicted_block & 0xFFFFFFFF);
           this->stat.writebacks++;
         }
+
+      if(this->parent != NULL) result = this->parent->read(addr_bak);
+
       }else{
         this->stat.actual_swap++;
         // Requested block IS in victim cache.
         // Swap oldblock in this cache with requested block in victim cache
         bool isdirty = (oldblock >> 35) & 1;
         uint64_t vc_swapped_block = this->vc->swap(addr_bak, vc_place_addr, isdirty);
-        if(!(vc_swapped_block >> 34 & 1) && (vc_swapped_block >> 35 & 1)){
+        if((vc_swapped_block >> 34)&1) ERROR("Swap with invalid block");
+        if(!((vc_swapped_block >> 34) & 1) && ((vc_swapped_block >> 35) & 1)){
           // Need to set dirty bit for the block that we just brought 
           this->lines[idx].setDirty(addr);  
         }
@@ -234,7 +237,6 @@ RESULT Cache::read(uint32_t addr){
     this->stat.rhits++;
     return CACHE_HIT;
   }
-
 }
 
 // Basically same logic as read. Not sure if write buffers are needed as of right now
@@ -296,7 +298,6 @@ RESULT Cache::write(uint32_t addr){
         // TODO: Figure out:
         // Write allocate: If L1 misses on write, shoult L2 stats increase L2 read or L2 write?
         // Currently doing read 
-        if(this->parent != NULL) result = this->parent->read(addr_bak);
         // Put evicted oldblock in victim cache
         // Check if oldblock is a dirty block
         bool isdirty = (oldblock >> 35) & 1;
@@ -306,13 +307,16 @@ RESULT Cache::write(uint32_t addr){
           if(this->parent != NULL) this->parent->write(vc_evicted_block & 0xFFFFFFFF);
           this->stat.writebacks++;
         }
+        if(this->parent != NULL) result = this->parent->read(addr_bak);
+
       }else{
         this->stat.actual_swap++;
         // Requested block IS in victim cache.
         // Swap oldblock in this cache with requested block in victim cache
         bool isdirty = (oldblock >> 35) & 1;
         uint64_t vc_swapped_block = this->vc->swap(addr_bak, vc_place_addr, isdirty);
-        if(!(vc_swapped_block >> 34 & 1) && ((vc_swapped_block >> 35) & 1)){
+        if((vc_swapped_block>> 34) & 1) ERROR("Swap with invalid block");
+        if(!((vc_swapped_block >> 34) & 1) && ((vc_swapped_block >> 35) & 1)){
           // Need to set dirty bit for the block that we just brought 
           this->lines[idx].setDirty(addr);  
         }

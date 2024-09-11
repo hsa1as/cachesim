@@ -100,7 +100,7 @@ int main(int argc, char** argv){
   if(vcs != 0){
     L1Cache.createVC(vcs*bsz, vcs, bsz);
     if(L1Cache.vc == 0){
-      ERROR("WTF?");
+      ERROR("??");
     }
   }
   char op;
