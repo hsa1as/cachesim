@@ -24,7 +24,6 @@
 #include <iomanip>
 #include <utility>
 #include <algorithm>
-#include "parse.h"
 
 Statistics::Statistics(){
   this->rmisses = 0;
@@ -67,7 +66,7 @@ uint64_t Line::replaceBlock(uint32_t tag, uint8_t lru_inc = 1){
   }
 
   // No blocks are free, find block to replace
-  int maxcounter = this->counters[0];
+  uint64_t maxcounter = this->counters[0];
   int maxidx = 0;
   // Implement LRU
   int i = 1;
@@ -164,7 +163,6 @@ Cache::Cache(int _size, int _assoc, int _blocksz):size(_size),
 RESULT Cache::read(uint32_t addr){
   this->stat.reads++;
   uint32_t addr_bak = addr;
-  uint32_t boff = addr & (0xFFFFFFFF ^ (0xFFFFFFFF << this->BITS_boff));
   addr = addr >> this->BITS_boff;
   uint32_t idx  = addr & (0xFFFFFFFF ^ (0xFFFFFFFF << this->BITS_idx));
   addr = addr >> this->BITS_idx;
@@ -242,7 +240,6 @@ RESULT Cache::read(uint32_t addr){
 RESULT Cache::write(uint32_t addr){
   this->stat.writes++;
   uint32_t addr_bak = addr;
-  uint32_t boff = addr & (0xFFFFFFFF ^ (0xFFFFFFFF << this->BITS_boff));
   addr = addr >> this->BITS_boff;
   uint32_t idx  = addr & (0xFFFFFFFF ^ (0xFFFFFFFF << this->BITS_idx));
   addr = addr >> this->BITS_idx;
@@ -381,8 +378,6 @@ uint64_t Cache::placeVictim(uint32_t addr, bool dirty){
     return 1LL<<33;
   }
   // place addr into this->lines[0] and set valid, dirty if(dirty), and update counters
-  uint32_t addr_bak = addr;
-  uint32_t boff = addr & (0xFFFFFFFF ^ (0xFFFFFFFF << this->BITS_boff));
   addr = addr >> this->BITS_boff;
   uint32_t idx  = addr & (0xFFFFFFFF ^ (0xFFFFFFFF << this->BITS_idx));
   addr = addr >> this->BITS_idx;

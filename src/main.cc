@@ -18,7 +18,69 @@
 #include<iostream>
 #include<fstream>
 #include<iomanip>
+#include "parse.h"
 using namespace std;
+
+void perfStat(Cache L1Cache){
+  // Get L1 values
+  float L1HT, L1E, L1A;
+  auto result = get_cacti_results(L1Cache.size, L1Cache.blocksz, L1Cache.assoc, &L1HT, &L1E, &L1A);
+  if(result != 0){
+    ERROR("Cacti failed getting L1 results");
+  }
+  float L2HT = 0, L2E = 0, L2A = 0;
+  if(L1Cache.parent != NULL){
+    result = get_cacti_results(L1Cache.parent->size, L1Cache.parent->blocksz, L1Cache.parent->assoc, &L2HT, &L2E, &L2A);
+    if(result != 0){
+      ERROR("Cacti failed getting L2 results");
+      exit(-1);
+    }
+  }
+  float VCHT = 0, VCE = 0, VCA = 0;
+  if(L1Cache.vc != NULL){
+    result = get_cacti_results(L1Cache.vc->size, L1Cache.vc->blocksz, L1Cache.vc->assoc, &VCHT, &VCE, &VCA);
+    if(result != 0){
+      VCHT = 0.2;
+      VCE = 0;
+      VCA = 0;
+    }
+  }
+  // Calculate average access time :
+  // Miss rate for ONLY L1+VC
+  float L1MR = (((float)L1Cache.stat.rmisses + L1Cache.stat.wmisses - L1Cache.stat.actual_swap)/(L1Cache.stat.reads + L1Cache.stat.writes));
+  // VC Swap rate
+  float VCSR = 0; 
+  if(L1Cache.vc != NULL)VCSR = (float)((float)L1Cache.stat.actual_swap)/(L1Cache.stat.reads + L1Cache.stat.writes);
+  double AAT = 0, L1MP;
+  if(L1Cache.parent != NULL){
+    float L2MR = (((float)L1Cache.parent->stat.rmisses)/(L1Cache.parent->stat.reads));
+    float L2MP = 20+ (float)L1Cache.blocksz/(16);
+    L1MP = L2HT + L2MR * L2MP;
+  }
+  else{
+    L1MP = 20 + (float)L1Cache.blocksz/(16);
+  }
+  // AAT is l1 hit time + Rate of misses routed to L2 * L1 miss penalty + Rate of swaps*swap time
+  AAT = L1HT + L1MR*(L1MP) + VCSR*(VCHT);
+
+  // Calculate energy delay product
+  double edp = L1Cache.stat.reads + L1Cache.stat.writes  + L1Cache.stat.rmisses + L1Cache.stat.wmisses;
+  edp *= L1E;
+  if(L1Cache.vc != NULL) edp += (2*L1Cache.stat.swap)*VCE;
+  if(L1Cache.parent != NULL){
+    edp += (L1Cache.parent->stat.reads + L1Cache.parent->stat.writes + L1Cache.parent->stat.rmisses + L1Cache.parent->stat.wmisses) * L2E;
+    edp += (L1Cache.parent->stat.rmisses + L1Cache.parent->stat.wmisses + L1Cache.parent->stat.writebacks)*0.05; // 0.05 nJ is Emem
+  }else{
+    edp += (L1Cache.stat.rmisses + L1Cache.stat.wmisses - L1Cache.stat.actual_swap + L1Cache.stat.writebacks)*0.05;
+  }
+  edp = edp*AAT*((float)L1Cache.stat.reads + (float)L1Cache.stat.writes);
+  float totarea = 0;
+  totarea = L1A + VCA + L2A;
+  cout<<setw(4);
+  cout<<"1. average access time: "<<AAT<<endl;
+  cout<<"2. energy-delay product: "<<edp<<endl;
+  cout<<"3. total area: "<<totarea<<endl;
+}
 
 int main(int argc, char** argv){
   if(argc != 8){
@@ -42,25 +104,17 @@ int main(int argc, char** argv){
   string addr_s;
    
   ifstream infile(filename);
-  uint64_t i = 0;
   while(infile >> op >> addr_s){
     char *p;
     uint32_t addr = strtol(addr_s.c_str(), &p, 16);
-    RESULT res;
     switch(op){
       case 'r':
-        res = L1Cache.read(addr);
+        L1Cache.read(addr);
         break;
       case 'w':
         L1Cache.write(addr);
         break;
     }
-    //if(i <= 100){
-     // cout<<"===== operation "<<i<<" ====="<<endl;
-      //L1Cache.dumpCache();
-      //cout<<endl;
-      //i++;
-    //}
   }
   // Simulator config
   cout<<"===== Simulator configuration ====="<<endl;
@@ -141,7 +195,7 @@ int main(int argc, char** argv){
   cout<<endl;  
 
   cout<<"===== Simulation results (performance) ====="<<endl;
-
+  perfStat(L1Cache);
 }
   // DEBUG stdin
  /*

@@ -3,7 +3,7 @@ OPT = -O3
 OP_DIR = outputs
 REF_DIR = ref_outputs
 #OPT = -g
-WARN = -Wall
+WARN = -Wall -Wno-reorder
 CFLAGS = $(OPT) $(WARN) $(INC) $(LIB)
 
 # List all your .cpp files here (source files, excluding header files)
