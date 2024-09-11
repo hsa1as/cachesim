@@ -47,7 +47,7 @@ clobber:
 	rm -f *.o
 	rm -rf ./$(OP_DIR)
 
-test:
+test: all
 	-rm -rf ./$(OP_DIR)
 	mkdir ./$(OP_DIR)
 	./cache_sim 1024 2 16 0 0 0 gcc_trace.txt > ./$(OP_DIR)/output_0.txt

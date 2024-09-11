@@ -164,7 +164,8 @@ RESULT Cache::read(uint32_t addr){
   this->stat.reads++;
   uint32_t addr_bak = addr;
   addr = addr >> this->BITS_boff;
-  uint32_t idx  = addr & (0xFFFFFFFF ^ (0xFFFFFFFF << this->BITS_idx));
+  //  uint32_t idx  = addr & (0xFFFFFFFF ^ (0xFFFFFFFF << this->BITS_idx));
+  uint32_t idx = addr ^ ((addr >> this->BITS_idx) << this->BITS_idx);
   addr = addr >> this->BITS_idx;
   uint32_t tag  = addr;
   RESULT result = this->lines[idx].readBlock(tag);
@@ -241,7 +242,8 @@ RESULT Cache::write(uint32_t addr){
   this->stat.writes++;
   uint32_t addr_bak = addr;
   addr = addr >> this->BITS_boff;
-  uint32_t idx  = addr & (0xFFFFFFFF ^ (0xFFFFFFFF << this->BITS_idx));
+  // uint32_t idx  = addr & (0xFFFFFFFF ^ (0xFFFFFFFF << this->BITS_idx));
+  uint32_t idx = addr ^ ((addr >> this->BITS_idx) << this->BITS_idx);
   addr = addr >> this->BITS_idx;
   uint32_t tag  = addr;
   // Check if block in line
@@ -379,7 +381,8 @@ uint64_t Cache::placeVictim(uint32_t addr, bool dirty){
   }
   // place addr into this->lines[0] and set valid, dirty if(dirty), and update counters
   addr = addr >> this->BITS_boff;
-  uint32_t idx  = addr & (0xFFFFFFFF ^ (0xFFFFFFFF << this->BITS_idx));
+  // uint32_t idx  = addr & (0xFFFFFFFF ^ (0xFFFFFFFF << this->BITS_idx));
+  uint32_t idx = addr ^ ((addr >> this->BITS_idx) << this->BITS_idx);
   addr = addr >> this->BITS_idx;
   uint32_t tag  = addr;
   RESULT result = this->lines[idx].readBlock(tag);

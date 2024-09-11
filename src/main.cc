@@ -11,7 +11,7 @@
 \ Author: R Sai Ashwin  /
 / Roll No: NS24Z344     \
 \_______________________/
-       ___)( )(___  jgs
+       ___)( )(___  
       (((__) (__)))
 */
 #include "cache.h"
@@ -27,6 +27,7 @@ void perfStat(Cache L1Cache){
   auto result = get_cacti_results(L1Cache.size, L1Cache.blocksz, L1Cache.assoc, &L1HT, &L1E, &L1A);
   if(result != 0){
     ERROR("Cacti failed getting L1 results");
+    exit(-1);
   }
   float L2HT = 0, L2E = 0, L2A = 0;
   if(L1Cache.parent != NULL){
@@ -47,36 +48,38 @@ void perfStat(Cache L1Cache){
   }
   // Calculate average access time :
   // Miss rate for ONLY L1+VC
-  float L1MR = (((float)L1Cache.stat.rmisses + L1Cache.stat.wmisses - L1Cache.stat.actual_swap)/(L1Cache.stat.reads + L1Cache.stat.writes));
+  double L1MR = ((double)L1Cache.stat.rmisses + L1Cache.stat.wmisses - L1Cache.stat.actual_swap);
+  L1MR /= (L1Cache.stat.reads + L1Cache.stat.writes);
   // VC Swap rate
-  float VCSR = 0; 
-  if(L1Cache.vc != NULL)VCSR = (float)((float)L1Cache.stat.actual_swap)/(L1Cache.stat.reads + L1Cache.stat.writes);
+  double VCSR = 0; 
+  if(L1Cache.vc != NULL)VCSR = ((double)L1Cache.stat.actual_swap)/((double)L1Cache.stat.reads + L1Cache.stat.writes);
   double AAT = 0, L1MP;
   if(L1Cache.parent != NULL){
-    float L2MR = (((float)L1Cache.parent->stat.rmisses)/(L1Cache.parent->stat.reads));
-    float L2MP = 20+ (float)L1Cache.blocksz/(16);
+    double L2MR = ((double)L1Cache.parent->stat.rmisses);
+    L2MR /= ((double)L1Cache.parent->stat.reads + L1Cache.parent->stat.writes);
+    double L2MP = 20 + (double)L1Cache.blocksz/(16);
     L1MP = L2HT + L2MR * L2MP;
   }
   else{
-    L1MP = 20 + (float)L1Cache.blocksz/(16);
+    L1MP = 20 + (double)L1Cache.blocksz/(16);
   }
-  // AAT is l1 hit time + Rate of misses routed to L2 * L1 miss penalty + Rate of swaps*swap time
+  // AAT is l1 hit time + Rate of misses routed to parent * miss penalty + Rate of swaps*swap time
   AAT = L1HT + L1MR*(L1MP) + VCSR*(VCHT);
 
   // Calculate energy delay product
   double edp = L1Cache.stat.reads + L1Cache.stat.writes  + L1Cache.stat.rmisses + L1Cache.stat.wmisses;
   edp *= L1E;
-  if(L1Cache.vc != NULL) edp += (2*L1Cache.stat.swap)*VCE;
+  if(L1Cache.vc != NULL) edp += ((double)2*L1Cache.stat.swap)*(double)(VCE);
   if(L1Cache.parent != NULL){
-    edp += (L1Cache.parent->stat.reads + L1Cache.parent->stat.writes + L1Cache.parent->stat.rmisses + L1Cache.parent->stat.wmisses) * L2E;
-    edp += (L1Cache.parent->stat.rmisses + L1Cache.parent->stat.wmisses + L1Cache.parent->stat.writebacks)*0.05; // 0.05 nJ is Emem
+    edp += ((double)L1Cache.parent->stat.reads + L1Cache.parent->stat.writes + L1Cache.parent->stat.rmisses + L1Cache.parent->stat.wmisses) * L2E;
+    edp += ((double)L1Cache.parent->stat.rmisses + L1Cache.parent->stat.wmisses + L1Cache.parent->stat.writebacks)*0.05; // 0.05 nJ is Emem
   }else{
-    edp += (L1Cache.stat.rmisses + L1Cache.stat.wmisses - L1Cache.stat.actual_swap + L1Cache.stat.writebacks)*0.05;
+    edp += ((double)L1Cache.stat.rmisses + L1Cache.stat.wmisses - L1Cache.stat.actual_swap + L1Cache.stat.writebacks)*0.05;
   }
-  edp = edp*AAT*((float)L1Cache.stat.reads + (float)L1Cache.stat.writes);
-  float totarea = 0;
+  edp = edp*AAT*((double)L1Cache.stat.reads + (double)L1Cache.stat.writes);
+  double totarea = 0;
   totarea = L1A + VCA + L2A;
-  cout<<setw(4);
+  cout<<setprecision(4);
   cout<<"1. average access time: "<<AAT<<endl;
   cout<<"2. energy-delay product: "<<edp<<endl;
   cout<<"3. total area: "<<totarea<<endl;

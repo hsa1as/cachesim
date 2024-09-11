@@ -64,5 +64,5 @@
 
 ===== Simulation results (performance) =====
 1. average access time: 2.9388
-2. energy-delay product: 404850052.2110
+2. energy-delay product: 404850051.3149
 3. total area: 0.0109

@@ -190,6 +190,6 @@
   p. total memory traffic:                         9993
 
 ===== Simulation results (performance) =====
-1. average access time: 1.4598
-2. energy-delay product: 131486853.0313
+1. average access time: 1.0204
+2. energy-delay product: 91908156.3650
 3. total area: 0.0726
