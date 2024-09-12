@@ -212,9 +212,7 @@ RESULT Cache::read(uint32_t addr){
           if(this->parent != NULL) this->parent->write(vc_evicted_block & 0xFFFFFFFF);
           this->stat.writebacks++;
         }
-
       if(this->parent != NULL) result = this->parent->read(addr_bak);
-
       }else{
         this->stat.actual_swap++;
         // Requested block IS in victim cache.
