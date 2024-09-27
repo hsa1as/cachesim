@@ -52,11 +52,11 @@ void perfStat(Cache L1Cache){
   L1MR /= (L1Cache.stat.reads + L1Cache.stat.writes);
   // VC Swap rate
   double VCSR = 0; 
-  if(L1Cache.vc != NULL)VCSR = ((double)L1Cache.stat.actual_swap)/((double)L1Cache.stat.reads + L1Cache.stat.writes);
+  if(L1Cache.vc != NULL)VCSR = ((double)L1Cache.stat.swap)/((double)L1Cache.stat.reads + L1Cache.stat.writes);
   double AAT = 0, L1MP;
   if(L1Cache.parent != NULL){
     double L2MR = ((double)L1Cache.parent->stat.rmisses);
-    L2MR /= ((double)L1Cache.parent->stat.reads + L1Cache.parent->stat.writes);
+    L2MR /= ((double)L1Cache.parent->stat.reads);
     double L2MP = 20 + (double)L1Cache.blocksz/(16);
     L1MP = L2HT + L2MR * L2MP;
   }

@@ -47,7 +47,7 @@ clobber:
 	rm -f *.o
 	rm -rf ./$(OP_DIR)
 
-test: all
+run: all
 	-rm -rf ./$(OP_DIR)
 	mkdir ./$(OP_DIR)
 	./cache_sim 1024 2 16 0 0 0 gcc_trace.txt > ./$(OP_DIR)/output_0.txt
@@ -58,6 +58,8 @@ test: all
 	./cache_sim 1024 1 16 16 0 0 gcc_trace.txt > ./$(OP_DIR)/output_5.txt
 	./cache_sim 1024 1 16 0 8192 4 gcc_trace.txt > ./$(OP_DIR)/output_6.txt
 	./cache_sim 1024 1 16 16 8192 4 gcc_trace.txt > ./$(OP_DIR)/output_7.txt
+
+diff: run 
 	@echo "Diff for output # 0"
 	-diff -iw ./$(OP_DIR)/output_0.txt ./$(REF_DIR)/gcc.output0.txt
 	@echo "Diff for output # 1"
