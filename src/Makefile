@@ -61,21 +61,21 @@ run: all
 
 diff: run 
 	@echo "Diff for output # 0"
-	-diff -iw ./$(OP_DIR)/output_0.txt ./$(REF_DIR)/gcc.output0.txt
+	-diff -iw ./$(OP_DIR)/output_0.txt ./$(REF_DIR)/gcc.output0.txt || true
 	@echo "Diff for output # 1"
-	-diff -iw ./$(OP_DIR)/output_1.txt ./$(REF_DIR)/gcc.output1.txt
+	-diff -iw ./$(OP_DIR)/output_1.txt ./$(REF_DIR)/gcc.output1.txt || true
 	@echo "Diff for output # 2"
-	-diff -iw ./$(OP_DIR)/output_2.txt ./$(REF_DIR)/gcc.output2.txt
+	-diff -iw ./$(OP_DIR)/output_2.txt ./$(REF_DIR)/gcc.output2.txt || true
 	@echo "Diff for output # 3"
-	-diff -iw ./$(OP_DIR)/output_3.txt ./$(REF_DIR)/gcc.output3.txt
+	-diff -iw ./$(OP_DIR)/output_3.txt ./$(REF_DIR)/gcc.output3.txt || true
 	@echo "Diff for output # 4"
-	-diff -iw ./$(OP_DIR)/output_4.txt ./$(REF_DIR)/gcc.output4.txt
+	-diff -iw ./$(OP_DIR)/output_4.txt ./$(REF_DIR)/gcc.output4.txt || true
 	@echo "Diff for output # 5"
-	-diff -iw ./$(OP_DIR)/output_5.txt ./$(REF_DIR)/gcc.output5.txt
+	-diff -iw ./$(OP_DIR)/output_5.txt ./$(REF_DIR)/gcc.output5.txt || true
 	@echo "Diff for output # 6"
-	-diff -iw ./$(OP_DIR)/output_6.txt ./$(REF_DIR)/gcc.output6.txt
+	-diff -iw ./$(OP_DIR)/output_6.txt ./$(REF_DIR)/gcc.output6.txt || true
 	@echo "Diff for output # 7"
-	-diff -iw ./$(OP_DIR)/output_7.txt ./$(REF_DIR)/gcc.output7.txt
+	-diff -iw ./$(OP_DIR)/output_7.txt ./$(REF_DIR)/gcc.output7.txt || true
 
 
 

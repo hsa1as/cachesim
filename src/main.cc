@@ -15,9 +15,9 @@
       (((__) (__)))
 */
 #include "cache.h"
-#include<iostream>
-#include<fstream>
-#include<iomanip>
+#include <iostream>
+#include <fstream>
+#include <iomanip>
 #include "parse.h"
 using namespace std;
 
@@ -55,6 +55,7 @@ void perfStat(Cache L1Cache){
   if(L1Cache.vc != NULL)VCSR = ((double)L1Cache.stat.swap)/((double)L1Cache.stat.reads + L1Cache.stat.writes);
   double AAT = 0, L1MP;
   if(L1Cache.parent != NULL){
+    // Why does L2MR not have write misses ? 
     double L2MR = ((double)L1Cache.parent->stat.rmisses);
     L2MR /= ((double)L1Cache.parent->stat.reads);
     double L2MP = 20 + (double)L1Cache.blocksz/(16);
@@ -63,18 +64,18 @@ void perfStat(Cache L1Cache){
   else{
     L1MP = 20 + (double)L1Cache.blocksz/(16);
   }
-  // AAT is l1 hit time + Rate of misses routed to parent * miss penalty + Rate of swaps*swap time
+  // AAT is l1 hit time + Rate of misses routed to parent * miss penalty + Vc_access_rate*swap time
   AAT = L1HT + L1MR*(L1MP) + VCSR*(VCHT);
 
   // Calculate energy delay product
-  double edp = L1Cache.stat.reads + L1Cache.stat.writes  + L1Cache.stat.rmisses + L1Cache.stat.wmisses;
+  double edp = (double)L1Cache.stat.reads + (double)L1Cache.stat.writes  + (double)L1Cache.stat.rmisses + (double)L1Cache.stat.wmisses;
   edp *= L1E;
   if(L1Cache.vc != NULL) edp += ((double)2*L1Cache.stat.swap)*(double)(VCE);
   if(L1Cache.parent != NULL){
-    edp += ((double)L1Cache.parent->stat.reads + L1Cache.parent->stat.writes + L1Cache.parent->stat.rmisses + L1Cache.parent->stat.wmisses) * L2E;
-    edp += ((double)L1Cache.parent->stat.rmisses + L1Cache.parent->stat.wmisses + L1Cache.parent->stat.writebacks)*0.05; // 0.05 nJ is Emem
+    edp += ((double)L1Cache.parent->stat.reads + (double)L1Cache.parent->stat.writes + (double)L1Cache.parent->stat.rmisses + (double)L1Cache.parent->stat.wmisses) * (double)(L2E);
+    edp += ((double)L1Cache.parent->stat.rmisses + (double)L1Cache.parent->stat.wmisses + (double)L1Cache.parent->stat.writebacks) * (double)(0.05); // 0.05 nJ is Emem
   }else{
-    edp += ((double)L1Cache.stat.rmisses + L1Cache.stat.wmisses - L1Cache.stat.actual_swap + L1Cache.stat.writebacks)*0.05;
+    edp += ((double)L1Cache.stat.rmisses + (double)L1Cache.stat.wmisses - (double)L1Cache.stat.actual_swap + (double)L1Cache.stat.writebacks) * (double)(0.05);
   }
   edp = edp*AAT*((double)L1Cache.stat.reads + (double)L1Cache.stat.writes);
   double totarea = 0;
