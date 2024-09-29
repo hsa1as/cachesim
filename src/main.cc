@@ -20,7 +20,6 @@
 #include <iomanip>
 #include "parse.h"
 using namespace std;
-
 void perfStat(Cache L1Cache){
   // Get L1 values
   float L1HT, L1E, L1A;
@@ -66,23 +65,34 @@ void perfStat(Cache L1Cache){
   }
   // AAT is l1 hit time + Rate of misses routed to parent * miss penalty + Vc_access_rate*swap time
   AAT = L1HT + L1MR*(L1MP) + VCSR*(VCHT);
-
-  // Calculate energy delay product
-  double edp = (double)L1Cache.stat.reads + (double)L1Cache.stat.writes  + (double)L1Cache.stat.rmisses + (double)L1Cache.stat.wmisses;
-  edp *= L1E;
-  if(L1Cache.vc != NULL) edp += ((double)2*L1Cache.stat.swap)*(double)(VCE);
+  long long scratch = (L1Cache.stat.reads + L1Cache.stat.writes);
+  double e1 = scratch*(L1E);
+  scratch = (L1Cache.stat.rmisses + L1Cache.stat.wmisses);
+  e1 += scratch*(L1E);
+  double e2 = 0, e3 = 0;
+  scratch = 2*L1Cache.stat.swap;
+  if(L1Cache.vc != NULL) e3 = scratch*((VCE));
   if(L1Cache.parent != NULL){
-    edp += ((double)L1Cache.parent->stat.reads + (double)L1Cache.parent->stat.writes + (double)L1Cache.parent->stat.rmisses + (double)L1Cache.parent->stat.wmisses) * (double)(L2E);
-    edp += ((double)L1Cache.parent->stat.rmisses + (double)L1Cache.parent->stat.wmisses + (double)L1Cache.parent->stat.writebacks) * (double)(0.05); // 0.05 nJ is Emem
+    scratch = (L1Cache.parent->stat.reads + L1Cache.parent->stat.writes);
+    scratch += (L1Cache.parent->stat.rmisses + L1Cache.parent->stat.wmisses);
+    e2 +=  scratch * (L2E);
+    scratch = (L1Cache.parent->stat.rmisses + L1Cache.parent->stat.wmisses + L1Cache.parent->stat.writebacks);
+    e2 += scratch*(0.0500000); // 0.05 nJ is Emem
   }else{
-    edp += ((double)L1Cache.stat.rmisses + (double)L1Cache.stat.wmisses - (double)L1Cache.stat.actual_swap + (double)L1Cache.stat.writebacks) * (double)(0.05);
+    if(L1Cache.vc == NULL) L1Cache.stat.actual_swap = 0;
+    scratch = (L1Cache.stat.rmisses + L1Cache.stat.wmisses + L1Cache.stat.writebacks - L1Cache.stat.actual_swap);
+    e2 = scratch * (0.0500000);
   }
-  edp = edp*AAT*((double)L1Cache.stat.reads + (double)L1Cache.stat.writes);
+  double final_edp;
+  if(L1Cache.vc != NULL) final_edp = (e1 + e2 + e3)*(AAT);
+  else final_edp = (e1 + e2)*(AAT);
+  scratch = (L1Cache.stat.reads + L1Cache.stat.writes);
+  final_edp *= scratch;
   double totarea = 0;
   totarea = L1A + VCA + L2A;
   cout<<setprecision(4);
   cout<<"1. average access time: "<<AAT<<endl;
-  cout<<"2. energy-delay product: "<<edp<<endl;
+  cout<<"2. energy-delay product: "<<final_edp<<endl;
   cout<<"3. total area: "<<totarea<<endl;
 }
 
