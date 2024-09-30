@@ -42,9 +42,9 @@ def generate_plot1():
     
     plt.figure(figsize=(10, 6))
     for assoc, label in zip(assocs, assoc_labels):
-        plt.plot(np.log2(valid_sizes[assoc]), miss_rates[assoc], marker='o', label=label)
+        plt.plot(np.log2(valid_sizes[assoc]), miss_rates[assoc], marker='x', label=label)
     
-    plt.xlabel('log2(SIZE)')
+    plt.xlabel('log2(size)')
     plt.ylabel('L1 Miss Rate')
     plt.title('Plot #1: L1 Miss Rate vs Cache Size for Different Associativities')
     plt.legend()
@@ -71,7 +71,7 @@ def generate_plot2():
     
     plt.figure(figsize=(10, 6))
     for assoc, label in zip(assocs, assoc_labels):
-        plt.plot(np.log2(valid_sizes[assoc]), aats[assoc], marker='o', label=label)
+        plt.plot(np.log2(valid_sizes[assoc]), aats[assoc], marker='x', label=label)
     
     plt.xlabel('log2(SIZE)')
     plt.ylabel('Average Access Time (AAT)')
@@ -100,7 +100,7 @@ def generate_plot3():
     
     plt.figure(figsize=(10, 6))
     for assoc, label in zip(assocs, assoc_labels):
-        plt.plot(np.log2(valid_sizes[assoc]), aats[assoc], marker='o', label=label)
+        plt.plot(np.log2(valid_sizes[assoc]), aats[assoc], marker='x', label=label)
     
     plt.xlabel('log2(L1 SIZE)')
     plt.ylabel('Average Access Time (AAT)')
@@ -127,7 +127,7 @@ def generate_plot4():
     
     plt.figure(figsize=(10, 6))
     for size in sizes:
-        plt.plot(np.log2(valid_blocksizes[size]), miss_rates[size], marker='o', label=f'{size//1024}KB')
+        plt.plot(np.log2(valid_blocksizes[size]), miss_rates[size], marker='x', label=f'{size//1024}KB')
     
     plt.xlabel('log2(BLOCKSIZE)')
     plt.ylabel('L1 Miss Rate')
@@ -228,7 +228,7 @@ def generate_plot7():
     
     plt.figure(figsize=(12, 6))
     for config, label in zip(configurations, labels):
-        plt.plot(np.log2(valid_sizes[config]), aats[config], marker='o', label=label)
+        plt.plot(np.log2(valid_sizes[config]), aats[config], marker='x', label=label)
     
     plt.xlabel('log2(L1 SIZE)')
     plt.ylabel('Average Access Time (AAT)')
