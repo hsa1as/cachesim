@@ -22,18 +22,16 @@
 using namespace std;
 void perfStat(Cache L1Cache){
   // Get L1 values
-  float L1HT, L1E, L1A;
+  float L1HT = 0, L1E = 0, L1A = 0;
   auto result = get_cacti_results(L1Cache.size, L1Cache.blocksz, L1Cache.assoc, &L1HT, &L1E, &L1A);
   if(result != 0){
     ERROR("Cacti failed getting L1 results");
-    exit(-1);
   }
   float L2HT = 0, L2E = 0, L2A = 0;
   if(L1Cache.parent != NULL){
     result = get_cacti_results(L1Cache.parent->size, L1Cache.parent->blocksz, L1Cache.parent->assoc, &L2HT, &L2E, &L2A);
     if(result != 0){
       ERROR("Cacti failed getting L2 results");
-      exit(-1);
     }
   }
   float VCHT = 0, VCE = 0, VCA = 0;

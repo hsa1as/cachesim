@@ -31,12 +31,18 @@ def run_cache_sim(l1_size, l1_assoc, vc_entries, l2_size, l2_assoc, block_size):
 def generate_plot1_data():
     sizes = [2**i * 1024 for i in range(1, 11)]  # 2KB to 1MB
     assocs = [1, 2, 4, 8, -1]  # -1 represents fully associative
-    data = {assoc: [] for assoc in assocs}
+    assoc_labels = ["Direct mapped", "2-way", "4-way", "8-way", "Fully associative"]
+    data = {assoc: [] for assoc in assoc_labels}
     
     for size in sizes:
+        i = 0
         for assoc in assocs:
-            l1_miss_rate, _, _ = run_cache_sim(size, assoc, 0, 0, 0, 32)
-            data[assoc].append((np.log2(size), l1_miss_rate))
+            l1_miss_rate, _, _ = run_cache_sim(size, assoc if assoc != -1 else size // 32, 0, 0, 0, 32)
+            if l1_miss_rate == None:
+                i += 1
+                continue
+            data[assoc_labels[i]].append((np.log2(size), l1_miss_rate))
+            i += 1
     
     return data
 
@@ -44,35 +50,50 @@ def generate_plot2_data():
     # Similar to plot1, but return AAT instead of miss rate
     sizes = [2**i * 1024 for i in range(1, 11)]  # 2KB to 1MB
     assocs = [1, 2, 4, 8, -1]  # -1 represents fully associative
-    data = {assoc: [] for assoc in assocs}
+    assoc_labels = ["Direct mapped", "2-way", "4-way", "8-way", "Fully associative"]
+    data = {assoc: [] for assoc in assoc_labels}
     
     for size in sizes:
+        i = 0
         for assoc in assocs:
-            _, aat, _ = run_cache_sim(size, assoc, 0, 0, 0, 32)
-            data[assoc].append((np.log2(size), aat))
+            _, aat, _ = run_cache_sim(size, assoc if assoc != -1 else size // 32, 0, 0, 0, 32)
+            if aat == None:
+                i += 1
+                continue
+            data[assoc_labels[i]].append((np.log2(size), aat))
+            i += 1
     
     return data
 
 def generate_plot3_data():
-    sizes = [2**i * 1024 for i in range(1, 8)]  # 2KB to 128KB
+    sizes = [(2**i) * 1024 for i in range(1, 8)]  # 2KB to 128KB
     assocs = [1, 2, 4, 8, -1]  # -1 represents fully associative
-    data = {assoc: [] for assoc in assocs}
-    
+    assoc_labels = ["Direct mapped", "2-way", "4-way", "8-way", "Fully associative"]
+    data = {assoc: [] for assoc in assoc_labels}
+ 
     for size in sizes:
+        i = 0
         for assoc in assocs:
-            _, aat, _ = run_cache_sim(size, assoc, 0, 256*1024, 8, 32)
-            data[assoc].append((np.log2(size), aat))
-    
+            _, aat, _ = run_cache_sim(size, assoc if assoc != -1 else size // 32, 0, 256*1024, 8, 32)
+            if aat == None:
+                i += 1
+                continue
+            data[assoc_labels[i]].append((np.log2(size), aat))
+            i += 1
     return data
 
 def generate_plot4_data():
     sizes = [2**i * 1024 for i in range(0, 6)]  # 1KB to 32KB
     block_sizes = [16, 32, 64, 128]
+    labels = [f"Block Size = {i}" for i in block_sizes]    
     data = {size: [] for size in sizes}
-    
+
     for size in sizes:
         for block_size in block_sizes:
             l1_miss_rate, _, _ = run_cache_sim(size, 4, 0, 0, 0, block_size)
+            if l1_miss_rate == None:
+                i += 1
+                continue
             data[size].append((np.log2(block_size), l1_miss_rate))
     
     return data
@@ -85,6 +106,8 @@ def generate_plot5_data():
     for l1_size, l2_size in itertools.product(l1_sizes, l2_sizes):
         if l1_size < l2_size:
             _, aat, _ = run_cache_sim(l1_size, 4, 0, l2_size, 8, 32)
+            if aat == None:
+                continue
             data.append((np.log2(l1_size), np.log2(l2_size), aat))
     
     return data
@@ -98,6 +121,8 @@ def generate_plot6_data():
     for l1_size, l2_size in itertools.product(l1_sizes, l2_sizes):
         if l1_size < l2_size:
             _, _, edp = run_cache_sim(l1_size, 4, 0, l2_size, 8, 32)
+            if edp == None:
+                continue
             data.append((np.log2(l1_size), np.log2(l2_size), edp))
     
     return data
@@ -113,6 +138,8 @@ def generate_plot7_data():
     for size in sizes:
         for assoc, vc_entries in configs:
             _, aat, _ = run_cache_sim(size, assoc, vc_entries, 256*1024, 8, 32)
+            if aat == None:
+                continue
             data[(assoc, vc_entries)].append((np.log2(size), aat))
     
     return data
@@ -136,13 +163,20 @@ def generate_latex_plot(plot_number, data, xlabel, ylabel, title):
     
     if plot_number in [1, 2, 3, 4, 7]:
         for label, points in data.items():
-            x, y = zip(*points)
-            latex_code += f"\\addplot coordinates {{{' '.join([f'({xi},{yi})' for xi, yi in zip(x, y)])}}};\n"
-            latex_code += f"\\addlegendentry{{{label}}}\n"
+            print(plot_number)
+            try:
+                x, y = zip(*points)
+                latex_code += f"\\addplot coordinates {{{' '.join([f'({xi},{yi})' for xi, yi in zip(x, y)])}}};\n"
+                latex_code += f"\\addlegendentry{{{label}}}\n"
+            except:
+                print(data)
+                continue
     elif plot_number in [5, 6]:
-        x, y, z = zip(*data)
-        latex_code += f"\\addplot3[surf] coordinates {{{' '.join([f'({xi},{yi},{zi})' for xi, yi, zi in zip(x, y, z)])}}};\n"
-    
+        try:
+            x, y, z = zip(*data)
+            latex_code += f"\\addplot3[surf] coordinates {{{' '.join([f'({xi},{yi},{zi})' for xi, yi, zi in zip(x, y, z)])}}};\n"
+        except:
+            print(data)
     latex_code += """
 \\end{axis}
 \\end{tikzpicture}
